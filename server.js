@@ -96,10 +96,10 @@ app.post("/webhook", async (req, res) => {
 
             const item = messageText.order.product_items[0];
 
-       const product = {
+     const product = {
     id: item.product_retailer_id,
     price: item.item_price,
-    name: item.product_name || `Product ₹${item.item_price}`,
+    name: nameMap[item.product_retailer_id] || "", // ✅ EMPTY if unknown
     size: "Selected",
     link: "https://yavastrah.com"
 };
@@ -108,11 +108,20 @@ app.post("/webhook", async (req, res) => {
             userSession[phone] = product;
 
             await sendWhatsApp(phone,
-`🛍️ *${product.name}*
 
-💰 Price: ₹${product.price}
+const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
+
+await sendWhatsApp(phone,
+${nameText}💰 Price: ₹${product.price}
 
 👉 Choose an option:
+
+1️⃣ Buy on Website (Recommended)  
+2️⃣ Pay Now (Quick Checkout)  
+3️⃣ Cash on Delivery`
+);
+
+
 
 1️⃣ Buy on Website (Recommended)  
 2️⃣ Pay Now (Quick Checkout)  
@@ -196,7 +205,7 @@ Name, Address, City, PIN`
                     const paymentLink = await createPaymentLink(session.price, phone, session);
 
                     await sendWhatsApp(phone,
-`🛍️ *${session.name}*
+const nameText = session.name ? `🛍️ *${session.name}*\n\n` : "";
 
 📦 Address: ${session.address}
 
@@ -208,16 +217,15 @@ ${paymentLink}`
                 /* ✅ COD CONFIRMATION */
                 else if (session.payment === "cod") {
 
-                    await sendWhatsApp(phone,
+                   await sendWhatsApp(phone,
 `✅ *Order Confirmed!*
 
-🛍️ ${session.name}
-📦 ${session.address}
+${nameText}📦 ${session.address}
 
 🚚 Payment: Cash on Delivery
 
 📦 Your order will be shipped soon!`
-                    );
+);
                 }
 
                 delete userSession[phone];
