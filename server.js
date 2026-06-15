@@ -97,10 +97,10 @@ app.post("/webhook", async (req, res) => {
         const phone = data.from;
 
         // ✅ PRODUCT MESSAGE (MOST IMPORTANT)
-        if (data.productitems) {
-            const item = data.productitems[0];
+        if (data.product_items) {
+            const item = data.product_items[0];
+const productId = item.product_retailer_id;
 
-            const variantId = item.productretailerid;
             const quantity = item.quantity;
 
             console.log("Product ID:", variantId);
