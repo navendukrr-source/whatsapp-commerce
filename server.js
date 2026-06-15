@@ -19,13 +19,18 @@ async function sendWhatsApp(to, message) {
         const res = await fetch(process.env.GETGABS_API, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${process.env.GETGABS_TOKEN}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                mobile: to,           // ✅ THIS is the correct key
-                message: message,
-                type: "text"          // ✅ REQUIRED for many Getgabs setups
+                to: phone,
+                type: "text",
+                messaging_product: "whatsapp",
+                recipient_type: "individual",
+                text: {
+                    body: message,
+                    preview_url: true
+                },
+                api_key: process.env.GETGABS_TOKEN
             })
         });
 
@@ -36,7 +41,7 @@ async function sendWhatsApp(to, message) {
         console.error("Send error:", err);
     }
 }
-
+``
 
 /* ✅ Create Razorpay payment link */
 async function createPaymentLink(amount, phone) {
