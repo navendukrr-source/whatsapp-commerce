@@ -76,11 +76,17 @@ app.post("/webhook", async (req, res) => {
         const phone = data.from;
 
         /* ✅ STEP 1: USER SENT PRODUCT */
-        const messageText = data.message_text ? JSON.parse(data.message_text) : null;
+        let messageText = null;
 
-if (messageText && messageText.product_items) {
+try {
+    messageText = data.message_text ? JSON.parse(data.message_text) : null;
+} catch (e) {
+    console.log("Parse error:", e);
+}
 
-            const item = messageText.product_items[0];
+if (messageText && messageText.order && messageText.order.product_items) {
+
+            const item = messageText.order.product_items[0];
 const productId = item.product_retailer_id;
 
             console.log("Product ID:", productId);
