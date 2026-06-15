@@ -91,7 +91,7 @@ app.post("/webhook", async (req, res) => {
 
         // 🔐 Basic security
         if (!data || !data.from) {
-            return res.sendStatus(400);
+            return res.status(200).json({ success: true });
         }
 
         const phone = data.from;
