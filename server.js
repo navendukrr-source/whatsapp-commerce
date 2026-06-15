@@ -23,8 +23,9 @@ async function sendWhatsApp(to, message) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                phone_number: to,   // ✅ THIS is what your logs show they expect
-                message: message    // ✅ keep simple text message
+                mobile: to,           // ✅ THIS is the correct key
+                message: message,
+                type: "text"          // ✅ REQUIRED for many Getgabs setups
             })
         });
 
