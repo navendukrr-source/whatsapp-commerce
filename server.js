@@ -15,17 +15,25 @@ const razorpay = new Razorpay({
 
 /* ✅ Send WhatsApp message */
 async function sendWhatsApp(to, message) {
-    await fetch(process.env.GETGABS_API, {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${process.env.GETGABS_TOKEN}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            to: to,
-            message: message
-        })
-    });
+    try {
+        const res = await fetch(process.env.GETGABS_API, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.GETGABS_TOKEN}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                number: to,
+                text: message
+            })
+        });
+
+        const data = await res.text();
+        console.log("Response:", data);
+
+    } catch (err) {
+        console.error("Error sending message:", err);
+    }
 }
 
 /* ✅ Create Razorpay payment link */
