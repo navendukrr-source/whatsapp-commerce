@@ -23,18 +23,19 @@ async function sendWhatsApp(to, message) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                number: to,
-                text: message
+                phone: to,        // ✅ important change
+                message: message  // ✅ important change
             })
         });
 
         const data = await res.text();
-        console.log("Response:", data);
+        console.log("Getgabs response:", data);
 
     } catch (err) {
         console.error("Error sending message:", err);
     }
 }
+
 
 /* ✅ Create Razorpay payment link */
 async function createPaymentLink(amount, phone) {
