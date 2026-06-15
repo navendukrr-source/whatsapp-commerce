@@ -41,33 +41,31 @@ async function sendWhatsApp(to, message) {
         console.error("Send error:", err);
     }
 }
-``
 
 /* ✅ Create Razorpay payment link */
-async function createPaymentLink(amount, phone) {
+async function createPaymentLink(amount, phone, product) {
     const link = await razorpay.paymentLink.create({
         amount: amount * 100,
         currency: "INR",
-        description: "Order Payment",
+        description: `${product.name} - ₹${product.price}`,
+
         customer: {
             contact: phone
+        },
+
+        notes: {
+            product_id: product.id,
+            product_name: product.name,
+            size: product.size || "Selected",
+            price: product.price,
+            address: product.address || ""
         }
     });
 
     return link.short_url;
 }
 
-/* ✅ PRODUCT MAP (ADD YOUR PRODUCTS HERE) */
-const productMap = {
-    "42147386949735": {
-        name: "Off-White Floral Print Cotton Shirt",
-        price: 850,
-        link: "https://yavastrah.com/products/off-white-floral-print-cotton-shirt"
-    }
-};
-
-
-/* ✅ TEMP STORAGE (USER → PRODUCT) */
+/* ✅ TEMP STORAGE */
 const userSession = {};
 
 /* ✅ WEBHOOK */
@@ -82,86 +80,149 @@ app.post("/webhook", async (req, res) => {
 
         const phone = data.wa_id;
 
-        /* ✅ STEP 1: USER SENT PRODUCT */
+        /* ✅ Parse message */
         let messageText = null;
 
-try {
-    messageText = data.message_text ? JSON.parse(data.message_text) : null;
-    console.log("Parsed messageText:", messageText);
-} catch (e) {
-    console.log("Parse error:", e);
-}
-
-if (data.message_type === "order" && messageText && messageText.order) {
-
-   const item = messageText.order.product_items[0];
-const productId = item.product_retailer_id;
-
-    console.log("Product ID:", productId);
-
-    const product = productMap[productId];
-
-    if (!product) {
-        await sendWhatsApp(phone, "❌ Product not configured.");
-        return res.status(200).json({ success: true });
-    }
-
-    userSession[phone] = product;
-
-    await sendWhatsApp(phone,
-`🛍️ *${product.name}*
-
-📏 Please confirm your size:
-Reply with S / M / L / XL`
-    );
-}
-
-        /* ✅ STEP 2: USER SELECTS SIZE */
-     else {
-
-    let text = "";
-
-    try {
-        if (data.message_text) {
-            const parsed = JSON.parse(data.message_text);
-            text = parsed.text ? parsed.text.toUpperCase() : "";
+        try {
+            if (data.message_text && data.message_text.startsWith("{")) {
+                messageText = JSON.parse(data.message_text);
+            }
+        } catch (e) {
+            console.log("Parse error:", e);
         }
-    } catch (e) {
-        text = data.message_text ? data.message_text.toUpperCase() : "";
-    }
 
-    text = text.trim();
+        /* ✅ STEP 1: PRODUCT RECEIVED */
+        if (data.message_type === "order" && messageText && messageText.order) {
 
-    console.log("User text:", text);   // 🔥 IMPORTANT DEBUG
+            const item = messageText.order.product_items[0];
 
-    const product = userSession[phone];
+       const product = {
+    id: item.product_retailer_id,
+    price: item.item_price,
+    name: item.product_name || `Product ₹${item.item_price}`,
+    size: "Selected",
+    link: "https://yavastrah.com"
+};
+            console.log("Full item:", item);
 
-    if (product && ["S", "M", "L", "XL"].includes(text)) {
+            userSession[phone] = product;
 
-        console.log("✅ Size detected:", text);
-
-        const paymentLink = await createPaymentLink(product.price, phone);
-
-        const message = `
-🛍️ *${product.name}*
-
-📏 Size: ${text}
+            await sendWhatsApp(phone,
+`🛍️ *${product.name}*
 
 💰 Price: ₹${product.price}
 
-✅ Buy on website:
-${product.link}
+👉 Choose an option:
+
+1️⃣ Buy on Website (Recommended)  
+2️⃣ Pay Now (Quick Checkout)  
+3️⃣ Cash on Delivery`
+            );
+        }
+
+        /* ✅ HANDLE USER INPUT */
+        else {
+
+            let text = "";
+
+            try {
+                if (data.message_text) {
+                    const parsed = JSON.parse(data.message_text);
+                    text = parsed.text ? parsed.text.toUpperCase() : "";
+                }
+            } catch (e) {
+                text = data.message_text ? data.message_text.toUpperCase() : "";
+            }
+
+            text = text.trim();
+            console.log("User text:", text);
+
+            const session = userSession[phone];
+
+            if (!session) {
+                return res.status(200).json({ success: true });
+            }
+
+            /* ✅ OPTION 1 → WEBSITE */
+            if (text === "1") {
+
+                await sendWhatsApp(phone,
+`✅ *Continue on Website*
+
+🛍️ ${session.name}
+
+👉 Click below:
+${session.link}
+`
+                );
+
+                delete userSession[phone];
+            }
+
+            /* ✅ OPTION 2 → PAY NOW */
+            else if (text === "2") {
+
+                session.step = "address";
+                session.payment = "online";
+
+                await sendWhatsApp(phone,
+`📦 Please enter your delivery details:
+
+Name, Address, City, PIN`
+                );
+            }
+
+            /* ✅ OPTION 3 → COD */
+            else if (text === "3") {
+
+                session.step = "address";
+                session.payment = "cod";
+
+                await sendWhatsApp(phone,
+`📦 Please enter your delivery details:
+
+Name, Address, City, PIN`
+                );
+            }
+
+            /* ✅ ADDRESS COLLECTION */
+            else if (session.step === "address") {
+
+                session.address = data.message_text;
+
+                /* ✅ ONLINE PAYMENT */
+                if (session.payment === "online") {
+
+                    const paymentLink = await createPaymentLink(session.price, phone, session);
+
+                    await sendWhatsApp(phone,
+`🛍️ *${session.name}*
+
+📦 Address: ${session.address}
 
 💳 Pay here:
-${paymentLink}
-        `;
+${paymentLink}`
+                    );
+                }
 
-        await sendWhatsApp(phone, message);
+                /* ✅ COD CONFIRMATION */
+                else if (session.payment === "cod") {
 
-        delete userSession[phone];
-    }
-}
-``
+                    await sendWhatsApp(phone,
+`✅ *Order Confirmed!*
+
+🛍️ ${session.name}
+📦 ${session.address}
+
+🚚 Payment: Cash on Delivery
+
+📦 Your order will be shipped soon!`
+                    );
+                }
+
+                delete userSession[phone];
+            }
+        }
 
         return res.status(200).json({ success: true });
 
