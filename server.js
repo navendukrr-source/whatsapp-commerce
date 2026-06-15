@@ -76,10 +76,12 @@ app.post("/webhook", async (req, res) => {
         const phone = data.from;
 
         /* ✅ STEP 1: USER SENT PRODUCT */
-        if (data.product_items) {
+        const messageText = data.message_text ? JSON.parse(data.message_text) : null;
 
-            const item = data.product_items[0];
-            const productId = item.product_retailer_id;
+if (messageText && messageText.product_items) {
+
+            const item = messageText.product_items[0];
+const productId = item.product_retailer_id;
 
             console.log("Product ID:", productId);
 
