@@ -7,13 +7,13 @@ const Razorpay = require("razorpay");
 const app = express();
 app.use(express.json());
 
-// ✅ Razorpay setup
+/* ✅ Razorpay setup */
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY,
     key_secret: process.env.RAZORPAY_SECRET
 });
 
-// ✅ Helper: Send WhatsApp message
+/* ✅ Send WhatsApp message */
 async function sendWhatsApp(to, message) {
     await fetch(process.env.GETGABS_API, {
         method: "POST",
@@ -28,52 +28,12 @@ async function sendWhatsApp(to, message) {
     });
 }
 
-// ✅ Get product from Shopify
-async function getProductDetails(variantId) {
-    const url = `https://${process.env.SHOPIFY_STORE}/admin/api/2023-10/variants/${variantId}.json`;
-
-    const res = await fetch(url, {
-        headers: {
-            "X-Shopify-Access-Token": process.env.SHOPIFY_TOKEN
-        }
-    });
-
-    const data = await res.json();
-    return data.variant;
-}
-
-// ✅ Create Shopify Order
-async function createOrder(variantId, quantity) {
-    const url = `https://${process.env.SHOPIFY_STORE}/admin/api/2023-10/orders.json`;
-
-    const res = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-Shopify-Access-Token": process.env.SHOPIFY_TOKEN
-        },
-        body: JSON.stringify({
-            order: {
-                line_items: [
-                    {
-                        variant_id: variantId,
-                        quantity: Number(quantity)
-                    }
-                ],
-                financial_status: "pending"
-            }
-        })
-    });
-
-    return await res.json();
-}
-
-// ✅ Create Razorpay payment link
+/* ✅ Create Razorpay payment link */
 async function createPaymentLink(amount, phone) {
     const link = await razorpay.paymentLink.create({
         amount: amount * 100,
         currency: "INR",
-        description: "WhatsApp Order Payment",
+        description: "Order Payment",
         customer: {
             contact: phone
         }
@@ -82,77 +42,109 @@ async function createPaymentLink(amount, phone) {
     return link.short_url;
 }
 
-// ✅ MAIN WEBHOOK
+/* ✅ PRODUCT MAP (ADD YOUR PRODUCTS HERE) */
+const productMap = {
+    "42147387015271": {
+        name: "Off-White Floral Print Cotton Shirt",
+        price: 1699,
+        link: "https://yavastrah.com/products/off-white-floral-print-cotton-shirt"
+    },
+
+    // 👉 ADD MORE PRODUCTS LIKE THIS
+    /*
+    "ANOTHER_ID": {
+        name: "Product Name",
+        price: 999,
+        link: "https://yavastrah.com/products/..."
+    }
+    */
+};
+
+/* ✅ TEMP STORAGE (USER → PRODUCT) */
+const userSession = {};
+
+/* ✅ WEBHOOK */
 app.post("/webhook", async (req, res) => {
     try {
         const data = req.body;
-
         console.log("Incoming:", data);
 
-        // 🔐 Basic security
         if (!data || !data.from) {
             return res.status(200).json({ success: true });
         }
 
         const phone = data.from;
 
-        // ✅ PRODUCT MESSAGE (MOST IMPORTANT)
+        /* ✅ STEP 1: USER SENT PRODUCT */
         if (data.product_items) {
+
             const item = data.product_items[0];
-const productId = item.product_retailer_id;
+            const productId = item.product_retailer_id;
 
-            const quantity = item.quantity;
+            console.log("Product ID:", productId);
 
-            console.log("Product ID:", variantId);
+            const product = productMap[productId];
 
-            // ✅ Step 1: Get product details
-            const product = await getProductDetails(variantId);
+            if (!product) {
+                await sendWhatsApp(phone, "❌ Product not configured.");
+                return res.status(200).json({ success: true });
+            }
 
-            const price = parseFloat(product.price);
-            const name = product.title;
+            /* ✅ SAVE PRODUCT IN SESSION */
+            userSession[phone] = product;
 
-            // ✅ Step 2: Create order in Shopify
-            await createOrder(variantId, quantity);
+            /* ✅ ASK SIZE */
+            await sendWhatsApp(phone,
+`🛍️ *${product.name}*
 
-            // ✅ Step 3: Create Razorpay link
-            const paymentLink = await createPaymentLink(price, phone);
-
-            // ✅ Step 4: Send WhatsApp message
-            const message = `
-✅ Order Created!
-
-🛍️ Product: ${name}
-💰 Price: ₹${price}
-
-👉 Pay here:
-${paymentLink}
-
-Once payment is done, your order will be confirmed.
-            `;
-
-            await sendWhatsApp(phone, message);
-
+📏 Please confirm your size:
+Reply with S / M / L / XL`
+            );
         }
 
-        // ✅ TEXT FALLBACK
+        /* ✅ STEP 2: USER SELECTS SIZE */
         else if (data.text) {
-            const text = data.text.toLowerCase();
 
-            if (text.includes("order")) {
-                await sendWhatsApp(phone,
-                    "🛒 Please send the product from catalog to place order."
-                );
+            const text = data.text.trim().toUpperCase();
+            const product = userSession[phone];
+
+            if (product && ["S", "M", "L", "XL"].includes(text)) {
+
+                /* ✅ Create payment link */
+                const paymentLink = await createPaymentLink(product.price, phone);
+
+                /* ✅ FINAL MESSAGE (YOUR REQUIRED FORMAT ✅) */
+                const message = `
+🛍️ *${product.name}*
+
+📏 Size: ${text}
+
+💰 Price: ₹${product.price}
+
+✅ Buy on website:
+${product.link}
+
+💳 Pay here:
+${paymentLink}
+                `;
+
+                await sendWhatsApp(phone, message);
+
+                /* ✅ clear session */
+                delete userSession[phone];
             }
         }
 
-        res.sendStatus(200);
+        return res.status(200).json({ success: true });
 
     } catch (err) {
         console.error("ERROR:", err);
-        res.sendStatus(500);
+        return res.status(500).json({ error: true });
     }
 });
 
+/* ✅ START SERVER */
 app.listen(process.env.PORT, () => {
     console.log("Server running...");
 });
+``
