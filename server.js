@@ -59,15 +59,6 @@ const productMap = {
     }
 };
 
-    // 👉 ADD MORE PRODUCTS LIKE THIS
-    /*
-    "ANOTHER_ID": {
-        name: "Product Name",
-        price: 999,
-        link: "https://yavastrah.com/products/..."
-    }
-    */
-};
 
 /* ✅ TEMP STORAGE (USER → PRODUCT) */
 const userSession = {};
@@ -82,7 +73,7 @@ app.post("/webhook", async (req, res) => {
             return res.status(200).json({ success: true });
         }
 
-        const phone = data.wa_id
+        const phone = data.wa_id;
 
         /* ✅ STEP 1: USER SENT PRODUCT */
         let messageText = null;
@@ -169,4 +160,3 @@ ${paymentLink}
 app.listen(process.env.PORT, () => {
     console.log("Server running...");
 });
-``
