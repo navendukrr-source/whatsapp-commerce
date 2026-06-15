@@ -52,11 +52,12 @@ async function createPaymentLink(amount, phone) {
 
 /* ✅ PRODUCT MAP (ADD YOUR PRODUCTS HERE) */
 const productMap = {
-    "42147387015271": {
+    "42147386949735": {
         name: "Off-White Floral Print Cotton Shirt",
-        price: 1699,
+        price: 850,
         link: "https://yavastrah.com/products/off-white-floral-print-cotton-shirt"
-    },
+    }
+};
 
     // 👉 ADD MORE PRODUCTS LIKE THIS
     /*
