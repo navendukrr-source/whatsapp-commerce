@@ -22,7 +22,7 @@ async function sendWhatsApp(to, message) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                to: phone,
+                to: to,
                 type: "text",
                 messaging_product: "whatsapp",
                 recipient_type: "individual",
