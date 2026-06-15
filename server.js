@@ -117,21 +117,28 @@ Reply with S / M / L / XL`
 }
 
         /* ✅ STEP 2: USER SELECTS SIZE */
-      else if (data.message_type === "text") {
+     else {
 
-    let textMessage = "";
+    let text = "";
 
     try {
-        const parsed = JSON.parse(data.message_text);
-        textMessage = parsed.text ? parsed.text.toUpperCase() : "";
+        if (data.message_text) {
+            const parsed = JSON.parse(data.message_text);
+            text = parsed.text ? parsed.text.toUpperCase() : "";
+        }
     } catch (e) {
-        textMessage = data.message_text.toUpperCase();
+        text = data.message_text ? data.message_text.toUpperCase() : "";
     }
 
-    const text = textMessage.trim();
+    text = text.trim();
+
+    console.log("User text:", text);   // 🔥 IMPORTANT DEBUG
+
     const product = userSession[phone];
 
     if (product && ["S", "M", "L", "XL"].includes(text)) {
+
+        console.log("✅ Size detected:", text);
 
         const paymentLink = await createPaymentLink(product.price, phone);
 
@@ -154,6 +161,7 @@ ${paymentLink}
         delete userSession[phone];
     }
 }
+``
 
         return res.status(200).json({ success: true });
 
