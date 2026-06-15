@@ -85,10 +85,10 @@ try {
     console.log("Parse error:", e);
 }
 
-if (messageText && messageText.order && messageText.order.product_items) {
+if (data.message_type === "order" && messageText && messageText.order) {
 
-    const item = messageText.order.product_items[0];
-    const productId = item.product_retailer_id;
+   const item = messageText.order.product_items[0];
+const productId = item.product_retailer_id;
 
     console.log("Product ID:", productId);
 
@@ -110,7 +110,7 @@ Reply with S / M / L / XL`
 }
 
         /* ✅ STEP 2: USER SELECTS SIZE */
-      else if (data.message_text) {
+      else if (data.message_type === "text") {
 
     let textMessage = "";
 
