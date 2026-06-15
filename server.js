@@ -69,60 +69,66 @@ app.post("/webhook", async (req, res) => {
         const data = req.body;
         console.log("Incoming:", data);
 
-        if (!data || !data.from) {
+        if (!data || !data.wa_id) {
             return res.status(200).json({ success: true });
         }
 
-        const phone = data.from;
+        const phone = data.wa_id
 
         /* ✅ STEP 1: USER SENT PRODUCT */
         let messageText = null;
 
 try {
     messageText = data.message_text ? JSON.parse(data.message_text) : null;
+    console.log("Parsed messageText:", messageText);
 } catch (e) {
     console.log("Parse error:", e);
 }
 
 if (messageText && messageText.order && messageText.order.product_items) {
 
-            const item = messageText.order.product_items[0];
-const productId = item.product_retailer_id;
+    const item = messageText.order.product_items[0];
+    const productId = item.product_retailer_id;
 
-            console.log("Product ID:", productId);
+    console.log("Product ID:", productId);
 
-            const product = productMap[productId];
+    const product = productMap[productId];
 
-            if (!product) {
-                await sendWhatsApp(phone, "❌ Product not configured.");
-                return res.status(200).json({ success: true });
-            }
+    if (!product) {
+        await sendWhatsApp(phone, "❌ Product not configured.");
+        return res.status(200).json({ success: true });
+    }
 
-            /* ✅ SAVE PRODUCT IN SESSION */
-            userSession[phone] = product;
+    userSession[phone] = product;
 
-            /* ✅ ASK SIZE */
-            await sendWhatsApp(phone,
+    await sendWhatsApp(phone,
 `🛍️ *${product.name}*
 
 📏 Please confirm your size:
 Reply with S / M / L / XL`
-            );
-        }
+    );
+}
 
         /* ✅ STEP 2: USER SELECTS SIZE */
-        else if (data.text) {
+      else if (data.message_text) {
 
-            const text = data.text.trim().toUpperCase();
-            const product = userSession[phone];
+    let textMessage = "";
 
-            if (product && ["S", "M", "L", "XL"].includes(text)) {
+    try {
+        const parsed = JSON.parse(data.message_text);
+        textMessage = parsed.text ? parsed.text.toUpperCase() : "";
+    } catch (e) {
+        textMessage = data.message_text.toUpperCase();
+    }
 
-                /* ✅ Create payment link */
-                const paymentLink = await createPaymentLink(product.price, phone);
+    const text = textMessage.trim();
+    const product = userSession[phone];
 
-                /* ✅ FINAL MESSAGE (YOUR REQUIRED FORMAT ✅) */
-                const message = `
+    if (product && ["S", "M", "L", "XL"].includes(text)) {
+
+        const paymentLink = await createPaymentLink(product.price, phone);
+
+        const message = `
 🛍️ *${product.name}*
 
 📏 Size: ${text}
@@ -134,14 +140,13 @@ ${product.link}
 
 💳 Pay here:
 ${paymentLink}
-                `;
+        `;
 
-                await sendWhatsApp(phone, message);
+        await sendWhatsApp(phone, message);
 
-                /* ✅ clear session */
-                delete userSession[phone];
-            }
-        }
+        delete userSession[phone];
+    }
+}
 
         return res.status(200).json({ success: true });
 
