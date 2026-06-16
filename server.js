@@ -13,33 +13,32 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_SECRET
 });
 
+/* ✅ PRODUCT NAME MAP */
+const nameMap = {
+    "42147386949735": "Off-White Floral Print Cotton Shirt"
+};
+
+/* ✅ PRODUCT LINK MAP */
+const linkMap = {
+    "42147386949735": "https://yavastrah.com/products/off-white-floral-print-cotton-shirt"
+};
+
 /* ✅ Send WhatsApp message */
 async function sendWhatsApp(to, message) {
-    try {
-        const res = await fetch(process.env.GETGABS_API, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                to: to,
-                type: "text",
-                messaging_product: "whatsapp",
-                recipient_type: "individual",
-                text: {
-                    body: message,
-                    preview_url: true
-                },
-                api_key: process.env.GETGABS_TOKEN
-            })
-        });
-
-        const data = await res.text();
-        console.log("Getgabs response:", data);
-
-    } catch (err) {
-        console.error("Send error:", err);
-    }
+    await fetch(process.env.GETGABS_API, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            to: to,
+            type: "text",
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            text: { body: message },
+            api_key: process.env.GETGABS_TOKEN
+        })
+    });
 }
 
 /* ✅ Create Razorpay payment link */
@@ -47,18 +46,13 @@ async function createPaymentLink(amount, phone, product) {
     const link = await razorpay.paymentLink.create({
         amount: amount * 100,
         currency: "INR",
-        description: `${product.name} - ₹${product.price}`,
-
-        customer: {
-            contact: phone
-        },
-
+        description: `${product.name || `Product ₹${product.price}`}`,
+        customer: { contact: phone },
         notes: {
             product_id: product.id,
             product_name: product.name,
-            size: product.size || "Selected",
-            price: product.price,
-            address: product.address || ""
+            size: product.size,
+            basic_info: product.basic_info
         }
     });
 
@@ -72,60 +66,37 @@ const userSession = {};
 app.post("/webhook", async (req, res) => {
     try {
         const data = req.body;
-        console.log("Incoming:", data);
-
-        if (!data || !data.wa_id) {
-            return res.status(200).json({ success: true });
-        }
-
         const phone = data.wa_id;
 
-        /* ✅ Parse message */
         let messageText = null;
 
         try {
             if (data.message_text && data.message_text.startsWith("{")) {
                 messageText = JSON.parse(data.message_text);
             }
-        } catch (e) {
-            console.log("Parse error:", e);
-        }
+        } catch {}
 
         /* ✅ STEP 1: PRODUCT RECEIVED */
-        if (data.message_type === "order" && messageText && messageText.order) {
+        if (data.message_type === "order" && messageText?.order) {
 
             const item = messageText.order.product_items[0];
 
-     const product = {
-    id: item.product_retailer_id,
-    price: item.item_price,
-    name: nameMap[item.product_retailer_id] || "", // ✅ EMPTY if unknown
-    size: "Selected",
-    link: "https://yavastrah.com"
-};
-            console.log("Full item:", item);
+            const product = {
+                id: item.product_retailer_id,
+                price: item.item_price,
+                name: nameMap[item.product_retailer_id] || "",
+                link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
+            };
 
             userSession[phone] = product;
 
+            const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
+
             await sendWhatsApp(phone,
+`${nameText}💰 Price: ₹${product.price}
 
-const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
-
-await sendWhatsApp(phone,
-${nameText}💰 Price: ₹${product.price}
-
-👉 Choose an option:
-
-1️⃣ Buy on Website (Recommended)  
-2️⃣ Pay Now (Quick Checkout)  
-3️⃣ Cash on Delivery`
-);
-
-
-
-1️⃣ Buy on Website (Recommended)  
-2️⃣ Pay Now (Quick Checkout)  
-3️⃣ Cash on Delivery`
+📏 Please select size:
+S / M / L / XL`
             );
         }
 
@@ -133,98 +104,107 @@ ${nameText}💰 Price: ₹${product.price}
         else {
 
             let text = "";
-
             try {
-                if (data.message_text) {
-                    const parsed = JSON.parse(data.message_text);
-                    text = parsed.text ? parsed.text.toUpperCase() : "";
-                }
-            } catch (e) {
-                text = data.message_text ? data.message_text.toUpperCase() : "";
+                const parsed = JSON.parse(data.message_text);
+                text = parsed.text || "";
+            } catch {
+                text = data.message_text || "";
             }
 
-            text = text.trim();
-            console.log("User text:", text);
+            text = text.toUpperCase().trim();
 
             const session = userSession[phone];
+            if (!session) return res.sendStatus(200);
 
-            if (!session) {
-                return res.status(200).json({ success: true });
-            }
+            /* ✅ STEP 2: SIZE */
+            if (!session.size && ["S","M","L","XL"].includes(text)) {
 
-            /* ✅ OPTION 1 → WEBSITE */
-            if (text === "1") {
+                session.size = text;
+
+                const nameText = session.name ? `🛍️ *${session.name}*\n\n` : "";
 
                 await sendWhatsApp(phone,
-`✅ *Continue on Website*
+`${nameText}📏 Size: ${session.size}
+💰 Price: ₹${session.price}
 
-🛍️ ${session.name}
+👉 Choose how you want to order:
 
-👉 Click below:
-${session.link}
-`
+1️⃣ Buy on Website (fastest ✅)  
+2️⃣ Quick Checkout (WhatsApp)  
+3️⃣ Cash on Delivery`
+                );
+            }
+
+            /* ✅ OPTION 1 — WEBSITE */
+            else if (text === "1") {
+
+                const nameText = session.name ? `🛍️ *${session.name}*\n\n` : "";
+
+                await sendWhatsApp(phone,
+`${nameText}✅ Continue on Website:
+
+👉 ${session.link}`
                 );
 
                 delete userSession[phone];
             }
 
-            /* ✅ OPTION 2 → PAY NOW */
+            /* ✅ OPTION 2 — PAY NOW */
             else if (text === "2") {
 
                 session.step = "address";
                 session.payment = "online";
 
                 await sendWhatsApp(phone,
-`📦 Please enter your delivery details:
+`📦 Please share your name & city:
 
-Name, Address, City, PIN`
+Example:
+Rahul - Jaipur ✅`
                 );
             }
 
-            /* ✅ OPTION 3 → COD */
+            /* ✅ OPTION 3 — COD */
             else if (text === "3") {
 
                 session.step = "address";
                 session.payment = "cod";
 
                 await sendWhatsApp(phone,
-`📦 Please enter your delivery details:
+`📦 Please share your name & city:
 
-Name, Address, City, PIN`
+Example:
+Rahul - Jaipur ✅`
                 );
             }
 
-            /* ✅ ADDRESS COLLECTION */
+            /* ✅ ADDRESS STEP */
             else if (session.step === "address") {
 
-                session.address = data.message_text;
+                session.basic_info = data.message_text;
 
-                /* ✅ ONLINE PAYMENT */
                 if (session.payment === "online") {
 
                     const paymentLink = await createPaymentLink(session.price, phone, session);
 
                     await sendWhatsApp(phone,
-const nameText = session.name ? `🛍️ *${session.name}*\n\n` : "";
-
-📦 Address: ${session.address}
-
-💳 Pay here:
+`💳 Pay here:
 ${paymentLink}`
                     );
                 }
 
-                /* ✅ COD CONFIRMATION */
-                else if (session.payment === "cod") {
+                else {
 
-                   await sendWhatsApp(phone,
+                    await sendWhatsApp(phone,
 `✅ *Order Confirmed!*
 
-${nameText}📦 ${session.address}
+📏 Size: ${session.size}
+📍 ${session.basic_info}
+
+📞 Our team will contact you to confirm delivery details
 
 🚚 Payment: Cash on Delivery
 
-📦 Your order will be shipped soon!`
+Thank you for shopping with us ❤️`
 );
                 }
 
@@ -232,11 +212,11 @@ ${nameText}📦 ${session.address}
             }
         }
 
-        return res.status(200).json({ success: true });
+        res.sendStatus(200);
 
     } catch (err) {
-        console.error("ERROR:", err);
-        return res.status(500).json({ error: true });
+        console.error(err);
+        res.sendStatus(500);
     }
 });
 
