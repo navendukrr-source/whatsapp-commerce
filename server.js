@@ -175,10 +175,10 @@ await sendWhatsApp(phone,
 2️⃣ Pay Now (Razorpay-secure) 
 3️⃣ COD (Cash on delivery)`
 );
-
-
-        /* ✅ USER INPUT */
-        else {
+}
+    else
+         /* ✅ USER INPUT */
+    
             let text = "";
             if (data.message_text && data.message_text.startsWith("{")) {
                 try {
