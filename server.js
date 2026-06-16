@@ -179,9 +179,7 @@ await sendWhatsApp(phone,
 
         /* ✅ USER INPUT */
         else {
-
             let text = "";
-
             if (data.message_text && data.message_text.startsWith("{")) {
                 try {
                     const parsed = JSON.parse(data.message_text);
