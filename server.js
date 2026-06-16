@@ -214,37 +214,38 @@ Rahul - Jaipur`
 Rahul - Jaipur`
                 );
 
-            } else if (session.step === "address") {
+            } else if (session.step === "address" && session.payment) {
 
-                session.basic_info = data.message_text;
+    session.basic_info = data.message_text;
 
-                if (session.payment === "online") {
+    if (session.payment === "online") {
 
-                    const link = await createPaymentLink(
-                        session.price,
-                        phone,
-                        session
-                    );
+        const link = await createPaymentLink(
+            session.price,
+            phone,
+            session
+        );
 
-                    await sendWhatsApp(phone,
-`💳 Pay:
+        await sendWhatsApp(phone,
+`💳 Pay here:
 ${link}`
-                    );
+        );
 
-                } else {
+    } else {
 
-                    await sendWhatsApp(phone,
-`✅ Order Confirmed!
+        await sendWhatsApp(phone,
+`✅ *Order Confirmed!*
 
-📏 ${session.size || ""}
 📍 ${session.basic_info}
 
-We will contact you ✅`
-                    );
-                }
+📞 We will contact you shortly
 
-                delete userSession[phone];
-            }
+🚚 Payment: COD`
+);
+    }
+
+    delete userSession[phone];
+}
         }
 
         res.sendStatus(200);
