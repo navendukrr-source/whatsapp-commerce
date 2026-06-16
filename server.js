@@ -176,29 +176,32 @@ await sendWhatsApp(phone,
 3️⃣ COD (Cash on delivery)`
 );
 }
-    else
-         /* ✅ USER INPUT */
-    
-            let text = "";
-            if (data.message_text && data.message_text.startsWith("{")) {
-                try {
-                    const parsed = JSON.parse(data.message_text);
-                    text = parsed.text || "";
-                } catch {}
-            } else if (typeof data.message_text === "string") {
-                text = data.message_text;
-            }
+else {
 
-            if (!text && data.text) {
-                text = data.text;
-            }
+    /* ✅ USER INPUT */
 
-            text = (text || "").toUpperCase().trim();
+    let text = "";
 
-            console.log("User text:", text);
+    if (data.message_text && data.message_text.startsWith("{")) {
+        try {
+            const parsed = JSON.parse(data.message_text);
+            text = parsed.text || "";
+        } catch {}
+    } else if (typeof data.message_text === "string") {
+        text = data.message_text;
+    }
 
-            const session = userSession[phone];
-            if (!session) return res.sendStatus(200);
+    if (!text && data.text) {
+        text = data.text;
+    }
+
+    text = (text || "").toUpperCase().trim();
+
+    console.log("User text:", text);
+
+    const session = userSession[phone];
+    if (!session) return res.sendStatus(200);
+}
 
             /* ✅ SIZE */
             if (!session.size && ["S","M","L","XL"].includes(text)) {
