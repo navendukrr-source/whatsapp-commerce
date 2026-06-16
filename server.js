@@ -165,7 +165,7 @@ if (data.message_type === "order" && messageText?.order) {
 
     const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
 
-// ✅ Correct logic OUTSIDE message
+// ✅ Logic first
 if (product.size) {
 
     await sendWhatsApp(phone,
@@ -181,7 +181,7 @@ if (product.size) {
 
 } else {
 
-await sendWhatsApp(phone,
+    await sendWhatsApp(phone,
 `${nameText}💰 Price: ₹${product.price}
 
 if (product.size) {
