@@ -103,15 +103,29 @@ S / M / L / XL`
         /* ✅ HANDLE USER INPUT */
         else {
 
-            let text = "";
-            try {
-                const parsed = JSON.parse(data.message_text);
-                text = parsed.text || "";
-            } catch {
-                text = data.message_text || "";
-            }
+           let text = "";
 
-            text = text.toUpperCase().trim();
+// ✅ Case 1: JSON message
+if (data.message_text && data.message_text.startsWith("{")) {
+    try {
+        const parsed = JSON.parse(data.message_text);
+        text = parsed.text || "";
+    } catch {}
+}
+
+// ✅ Case 2: plain text ("1", "2", "M", etc.)
+else if (typeof data.message_text === "string") {
+    text = data.message_text;
+}
+
+// ✅ Case 3: fallback (very important)
+if (!text && data.text) {
+    text = data.text;
+}
+
+text = (text || "").toUpperCase().trim();
+
+console.log("User text:", text);
 
             const session = userSession[phone];
             if (!session) return res.sendStatus(200);
