@@ -302,14 +302,13 @@ app.post("/webhook", async (req, res) => {
 
             const metaData = productCache[item.product_retailer_id] || {};
 
-           const product = {
+          const product = {
     id: item.product_retailer_id,
     price: item.item_price,
     name: metaData.name || nameMap[item.product_retailer_id] || "",
     size: sizeMap[item.product_retailer_id] || null,
     link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
 };
-``
             userSession[phone] = product;
 
             const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
@@ -355,13 +354,14 @@ app.post("/webhook", async (req, res) => {
 
 if (text === "1") {
 
-    await sendWhatsApp(phone,
+   await sendWhatsApp(phone,
 `🛍️ ${session.name}
 ${session.size ? `📏 Size: ${session.size}` : ""}
+💰 Price: ₹${session.price}
 
 🛒 Continue here:
 ${session.link}`
-    );
+);
 
     delete userSession[phone];
 
@@ -378,39 +378,70 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 
 💥 Available Offers:
 
-1️⃣ YAVASTRAH25 - First purchase Offer
-✅ 25% OFF  
+1️⃣ YAVASTRAH25 - First purchase Offer (Except Crop Tops)
+✅ Flat 25% OFF  
 
 2️⃣ YVSTRAH15  
-${session.price >= 1199 ? "✅ Available" : "🔒 Min ₹1199"}  
+${session.price >= 1199 
+    ? "✅ Available" 
+    : `🔒 Add ₹${1199 - session.price} more to unlock`}  
 
 3️⃣ YVSTRAH20  
-${session.price >= 1899 ? "✅ Available" : "🔒 Min ₹1899"}  
+${session.price >= 1899 
+    ? "✅ Available" 
+    : `🔒 Add ₹${1899 - session.price} more to unlock`}  
 
-4️⃣ Skip
+4️⃣ CROPTOP20  
+${session.name.toLowerCase().includes("crop top") 
+    ? "✅ Applicable" 
+    : "❌ Only for crop tops"}
 
-👉 Reply 1 / 2 / 3 / 4`
-    );
+5️⃣ Skip
+
+👉 Reply 1 / 2 / 3 / 4 / 5`
+);
+
 
 } 
-else if (text === "3") {
+else if (text === "4") {
 
-    session.step = "address";
-    session.payment = "cod";
+    const isCropTop =
+        session.name.toLowerCase().includes("crop top");
 
-    await sendWhatsApp(phone,
-`🛍️ ${session.name}
+    if (isCropTop) {
+
+        const discount = Math.round(session.price * 0.20);
+        session.price -= discount;
+
+        session.step = "address";
+
+        await sendWhatsApp(phone,
+`✅ CROPTOP20 applied!
+
+🛍️ ${session.name}
 ${session.size ? `📏 Size: ${session.size}` : ""}
 
-📦 Enter name & city:
+💸 Discount: ₹${discount}
+💰 Final Price: ₹${session.price}
 
-Rahul - Jaipur`
-    );
+📦 Enter name & city`
+        );
 
-} 
+    } else {
 
+        await sendWhatsApp(phone,
+`❌ This coupon is only valid for Crop Tops
+
+👉 Try another option`
+        );
+    }
+}
 /* ✅ COUPON LOGIC */
 else if (session.step === "coupon") {
+
+    const isCropTop =
+        session.name.toLowerCase().includes("crop top") ||
+        session.name.toLowerCase().includes("croptop");
 
     let discount = 0;
 
@@ -429,7 +460,20 @@ else if (session.step === "coupon") {
         discount = Math.round(session.price * 0.20);
 
     } 
-    else if (text === "4" || text === "SKIP") {
+    else if (text === "4") {
+
+        if (isCropTop) {
+            discount = Math.round(session.price * 0.20);
+        } else {
+            await sendWhatsApp(phone,
+`❌ This coupon is only valid for Crop Tops
+
+👉 Try another option`);
+            return;
+        }
+
+    } 
+    else if (text === "5" || text === "SKIP") {
 
         session.step = "address";
 
@@ -442,16 +486,14 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 📦 Enter name & city:
 Rahul - Jaipur`
         );
-
         return;
-
-    } else {
+    } 
+    else {
 
         await sendWhatsApp(phone,
-`❌ Invalid or not eligible  
-Reply 1 / 2 / 3 / 4`
+`❌ Invalid option  
+Reply 1 / 2 / 3 / 4 / 5`
         );
-
         return;
     }
 
@@ -471,6 +513,10 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 Rahul - Jaipur`
     );
 }
+        return;
+
+    } 
+    else {
 
 /* ✅ ADDRESS + PAYMENT */
 else if (session.step === "address" && session.payment) {
@@ -491,8 +537,11 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 💰 Amount: ₹${session.price}
 
 💳 Pay here:
-${link}`
-        );
+${link}
+
+✅ You will receive confirmation after payment`
+);
+
 
     } else {
 
