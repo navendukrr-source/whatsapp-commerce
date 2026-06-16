@@ -184,13 +184,13 @@ if (product.size) {
     await sendWhatsApp(phone,
 `${nameText}💰 Price: ₹${product.price}
 
-📏 Please select size:
-S / M / L / XL`
-    );
+if (product.size) {
+   // show size
+} else {
+   // ask size
 }
-
-
-
+);
+}
 
         /* ✅ USER INPUT */
         else {
