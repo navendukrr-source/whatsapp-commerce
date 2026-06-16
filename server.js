@@ -31,7 +31,7 @@ async function sendWhatsApp(to, message) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            to: to,
+            to,
             type: "text",
             messaging_product: "whatsapp",
             recipient_type: "individual",
@@ -66,9 +66,12 @@ const userSession = {};
 app.post("/webhook", async (req, res) => {
     try {
         const data = req.body;
+
+        // ✅ ignore delivery/read events
         if (!data.message_text && !data.text) {
-    return res.sendStatus(200);
-}
+            return res.sendStatus(200);
+        }
+
         const phone = data.wa_id;
 
         let messageText = null;
@@ -106,29 +109,28 @@ S / M / L / XL`
         /* ✅ HANDLE USER INPUT */
         else {
 
-           let text = "";
+            let text = "";
 
-// ✅ Case 1: JSON message
-if (data.message_text && data.message_text.startsWith("{")) {
-    try {
-        const parsed = JSON.parse(data.message_text);
-        text = parsed.text || "";
-    } catch {}
-}
+            // ✅ JSON message
+            if (data.message_text && data.message_text.startsWith("{")) {
+                try {
+                    const parsed = JSON.parse(data.message_text);
+                    text = parsed.text || "";
+                } catch {}
+            }
+            // ✅ normal text
+            else if (typeof data.message_text === "string") {
+                text = data.message_text;
+            }
 
-// ✅ Case 2: plain text ("1", "2", "M", etc.)
-else if (typeof data.message_text === "string") {
-    text = data.message_text;
-}
+            // ✅ fallback
+            if (!text && data.text) {
+                text = data.text;
+            }
 
-// ✅ Case 3: fallback (very important)
-if (!text && data.text) {
-    text = data.text;
-}
+            text = (text || "").toUpperCase().trim();
 
-text = (text || "").toUpperCase().trim();
-
-console.log("User text:", text);
+            console.log("User text:", text);
 
             const session = userSession[phone];
             if (!session) return res.sendStatus(200);
@@ -201,7 +203,11 @@ Rahul - Jaipur ✅`
 
                 if (session.payment === "online") {
 
-                    const paymentLink = await createPaymentLink(session.price, phone, session);
+                    const paymentLink = await createPaymentLink(
+                        session.price,
+                        phone,
+                        session
+                    );
 
                     await sendWhatsApp(phone,
 `💳 Pay here:
@@ -222,7 +228,7 @@ ${paymentLink}`
 🚚 Payment: Cash on Delivery
 
 Thank you for shopping with us ❤️`
-);
+                    );
                 }
 
                 delete userSession[phone];
@@ -232,7 +238,7 @@ Thank you for shopping with us ❤️`
         res.sendStatus(200);
 
     } catch (err) {
-        console.error(err);
+        console.error("ERROR:", err);
         res.sendStatus(500);
     }
 });
