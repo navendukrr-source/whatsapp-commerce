@@ -165,32 +165,17 @@ if (data.message_type === "order" && messageText?.order) {
 
     const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
 
-// ✅ Logic first
-if (product.size) {
-
-    await sendWhatsApp(phone,
-`${nameText}📏 Size: ${product.size}
+await sendWhatsApp(phone,
+`${nameText}${product.size ? `📏 Size: ${product.size}\n` : ""}
 💰 Price: ₹${product.price}
 
 👉 Choose:
 
-1️⃣ Website  
-2️⃣ Pay Now  
-3️⃣ COD`
-    );
-
-} else {
-
-    await sendWhatsApp(phone,
-`${nameText}💰 Price: ₹${product.price}
-
-if (product.size) {
-   // show size
-} else {
-   // ask size
-}
+1️⃣ Website (Fastest)
+2️⃣ Pay Now (Razorpay-secure) 
+3️⃣ COD (Cash on delivery)`
 );
-}
+
 
         /* ✅ USER INPUT */
         else {
