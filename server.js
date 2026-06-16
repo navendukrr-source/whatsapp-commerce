@@ -181,7 +181,7 @@ if (product.size) {
 
 } else {
 
-    await sendWhatsApp(phone,
+await sendWhatsApp(phone,
 `${nameText}💰 Price: ₹${product.price}
 
 if (product.size) {
