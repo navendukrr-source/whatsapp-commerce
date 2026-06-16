@@ -258,7 +258,7 @@ async function createPaymentLink(amount, phone, product) {
     const link = await razorpay.paymentLink.create({
         amount: amount * 100,
         currency: "INR",
-        description: product.name || `Product ₹${product.price}`,
+        description: `${product.name || "Product"}${product.size ? ` | Size: ${product.size}` : ""}`,
         customer: { contact: phone },
         notes: {
             product_id: product.id,
@@ -270,6 +270,7 @@ async function createPaymentLink(amount, phone, product) {
 
     return link.short_url;
 }
+
 
 /* ✅ SESSION */
 const userSession = {};
@@ -319,9 +320,9 @@ app.post("/webhook", async (req, res) => {
 
 👉 Choose:
 
-1️⃣ Website  
-2️⃣ Pay Now  
-3️⃣ COD`
+1️⃣ Website ((Coupons available-Fastest)
+2️⃣ Pay Now (Razorpay-Secure)
+3️⃣ COD (Cash on Delivery)`
             );
 
         } else {
@@ -352,38 +353,127 @@ app.post("/webhook", async (req, res) => {
 
             /* ✅ OPTIONS */
 
-            if (text === "1") {
+if (text === "1") {
 
-                await sendWhatsApp(phone,
-`👉 Buy here:
+    await sendWhatsApp(phone,
+`🛍️ ${session.name}
+${session.size ? `📏 Size: ${session.size}` : ""}
+
+🛒 Continue here:
 ${session.link}`
-                );
+    );
 
-                delete userSession[phone];
+    delete userSession[phone];
 
-            } else if (text === "2") {
+} 
+else if (text === "2") {
 
-                session.step = "address";
-                session.payment = "online";
+    session.step = "coupon";
+    session.payment = "online";
 
-                await sendWhatsApp(phone,
-`📦 Enter name & city:
+    await sendWhatsApp(phone,
+`🛍️ ${session.name}
+${session.size ? `📏 Size: ${session.size}` : ""}
+💰 Price: ₹${session.price}
+
+💥 Available Offers:
+
+1️⃣ YAVASTRAH25 - First purchase Offer
+✅ 25% OFF  
+
+2️⃣ YVSTRAH15  
+${session.price >= 1199 ? "✅ Available" : "🔒 Min ₹1199"}  
+
+3️⃣ YVSTRAH20  
+${session.price >= 1899 ? "✅ Available" : "🔒 Min ₹1899"}  
+
+4️⃣ Skip
+
+👉 Reply 1 / 2 / 3 / 4`
+    );
+
+} 
+else if (text === "3") {
+
+    session.step = "address";
+    session.payment = "cod";
+
+    await sendWhatsApp(phone,
+`🛍️ ${session.name}
+${session.size ? `📏 Size: ${session.size}` : ""}
+
+📦 Enter name & city:
 
 Rahul - Jaipur`
-                );
+    );
 
-            } else if (text === "3") {
+} 
 
-                session.step = "address";
-                session.payment = "cod";
+/* ✅ COUPON LOGIC */
+else if (session.step === "coupon") {
 
-                await sendWhatsApp(phone,
-`📦 Enter name & city:
+    let discount = 0;
 
+    if (text === "1") {
+
+        discount = Math.round(session.price * 0.25);
+
+    } 
+    else if (text === "2" && session.price >= 1199) {
+
+        discount = Math.round(session.price * 0.15);
+
+    } 
+    else if (text === "3" && session.price >= 1899) {
+
+        discount = Math.round(session.price * 0.20);
+
+    } 
+    else if (text === "4" || text === "SKIP") {
+
+        session.step = "address";
+
+        await sendWhatsApp(phone,
+`🛍️ ${session.name}
+${session.size ? `📏 Size: ${session.size}` : ""}
+
+💰 Price: ₹${session.price}
+
+📦 Enter name & city:
 Rahul - Jaipur`
-                );
+        );
 
-            } else if (session.step === "address" && session.payment) {
+        return;
+
+    } else {
+
+        await sendWhatsApp(phone,
+`❌ Invalid or not eligible  
+Reply 1 / 2 / 3 / 4`
+        );
+
+        return;
+    }
+
+    session.price -= discount;
+    session.step = "address";
+
+    await sendWhatsApp(phone,
+`✅ Coupon applied!
+
+🛍️ ${session.name}
+${session.size ? `📏 Size: ${session.size}` : ""}
+
+💸 Discount: ₹${discount}
+💰 Final Price: ₹${session.price}
+
+📦 Enter name & city:
+Rahul - Jaipur`
+    );
+}
+
+/* ✅ ADDRESS + PAYMENT */
+else if (session.step === "address" && session.payment) {
 
     session.basic_info = data.message_text;
 
@@ -396,7 +486,11 @@ Rahul - Jaipur`
         );
 
         await sendWhatsApp(phone,
-`💳 Pay here:
+`🛍️ ${session.name}
+${session.size ? `📏 Size: ${session.size}` : ""}
+💰 Amount: ₹${session.price}
+
+💳 Pay here:
 ${link}`
         );
 
@@ -405,25 +499,20 @@ ${link}`
         await sendWhatsApp(phone,
 `✅ *Order Confirmed!*
 
+🛍️ ${session.name}
+${session.size ? `📏 Size: ${session.size}` : ""}
+💰 Price: ₹${session.price}
 📍 ${session.basic_info}
 
-📞 We will contact you shortly
+📞 We will contact you to confirm address details
 
 🚚 Payment: COD`
-);
+        );
+
     }
 
     delete userSession[phone];
 }
-        }
-
-        res.sendStatus(200);
-
-    } catch (err) {
-        console.error(err);
-        res.sendStatus(500);
-    }
-});
 
 /* ✅ START */
 app.listen(process.env.PORT, () => {
