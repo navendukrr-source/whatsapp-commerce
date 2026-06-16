@@ -66,6 +66,9 @@ const userSession = {};
 app.post("/webhook", async (req, res) => {
     try {
         const data = req.body;
+        if (!data.message_text && !data.text) {
+    return res.sendStatus(200);
+}
         const phone = data.wa_id;
 
         let messageText = null;
