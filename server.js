@@ -13,23 +13,88 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_SECRET
 });
 
-/* ✅ PRODUCT NAME MAP */
+/* ✅ FALLBACK MAPS (IMPORTANT) */
 const nameMap = {
     "42147386949735": "Off-White Floral Print Cotton Shirt"
 };
 
-/* ✅ PRODUCT LINK MAP */
 const linkMap = {
     "42147386949735": "https://yavastrah.com/products/off-white-floral-print-cotton-shirt"
 };
 
-/* ✅ Send WhatsApp message */
+/* ✅ META CACHE */
+const productCache = {};
+
+/* ✅ LOAD META PRODUCTS (SAFE INIT) */
+async function loadMetaProducts() {
+    try {
+        const res = await fetch(
+            `https://graph.facebook.com/v19.0/${process.env.CATALOG_ID}/products?fields=variants{retailer_id,variant_values}&access_toke=${process.env.META_TOKEN}`
+        );
+
+        const data = await res.json();
+
+        if (!data.data) return;
+
+        data.data.forEach(p => {
+            productCache[p.retailer_id] = {
+                name: p.name
+            };
+        });
+
+        console.log("✅ Meta products loaded");
+    } catch (err) {
+        console.log("⚠️ Meta load failed — fallback active");
+    }
+}
+async function loadVariants() {
+    try {
+        const res = await fetch(
+            `https://graph.facebook.com/v19.0/${process.env.CATALOG_ID}/products?fields=variants{retailer_id,variant_values}&access_token=${process.env.META_TOKEN}`
+        );
+
+        const data = await res.json();
+
+        if (!data.data) return;
+
+        data.data.forEach(product => {
+
+            if (!product.variants?.data) return;
+
+            product.variants.data.forEach(variant => {
+
+                const id = variant.retailer_id;
+                const size =
+    variant.variant_values?.Size ||
+    variant.variant_values?.size ||
+    variant.variant_values?.SIZE;
+
+                if (!productCache[id]) {
+                    productCache[id] = {};
+                }
+
+                productCache[id].size = size;
+            });
+        });
+
+        console.log("✅ Variant sizes loaded");
+
+    } catch (err) {
+        console.log("⚠️ Variant fetch failed");
+    }
+}
+
+/* ✅ CALL ON START */
+(async () => {
+    await loadMetaProducts();
+    await loadVariants();
+})();
+
+/* ✅ Send WhatsApp */
 async function sendWhatsApp(to, message) {
     await fetch(process.env.GETGABS_API, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             to,
             type: "text",
@@ -41,7 +106,7 @@ async function sendWhatsApp(to, message) {
     });
 }
 
-/* ✅ Create Razorpay payment link */
+/* ✅ Create Razorpay */
 async function createPaymentLink(amount, phone, product) {
     const link = await razorpay.paymentLink.create({
         amount: amount * 100,
@@ -59,7 +124,7 @@ async function createPaymentLink(amount, phone, product) {
     return link.short_url;
 }
 
-/* ✅ TEMP STORAGE */
+/* ✅ SESSION */
 const userSession = {};
 
 /* ✅ WEBHOOK */
@@ -67,7 +132,6 @@ app.post("/webhook", async (req, res) => {
     try {
         const data = req.body;
 
-        // ✅ ignore delivery/read events
         if (!data.message_text && !data.text) {
             return res.sendStatus(200);
         }
@@ -82,48 +146,66 @@ app.post("/webhook", async (req, res) => {
             }
         } catch {}
 
-        /* ✅ STEP 1: PRODUCT RECEIVED */
-        if (data.message_type === "order" && messageText?.order) {
+       /* ✅ PRODUCT RECEIVED */
+if (data.message_type === "order" && messageText?.order) {
 
-            const item = messageText.order.product_items[0];
+    const item = messageText.order.product_items[0];
 
-            const product = {
-                id: item.product_retailer_id,
-                price: item.item_price,
-                name: nameMap[item.product_retailer_id] || "",
-                link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
-            };
+    const metaData = productCache[item.product_retailer_id] || {};
 
-            userSession[phone] = product;
+    const product = {
+        id: item.product_retailer_id,
+        price: item.item_price,
+        name: metaData.name || nameMap[item.product_retailer_id] || "",
+        size: metaData.size || null,
+        link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
+    };
 
-            const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
+    userSession[phone] = product;
 
-            await sendWhatsApp(phone,
+    const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
+
+// ✅ Correct logic OUTSIDE message
+if (product.size) {
+
+    await sendWhatsApp(phone,
+`${nameText}📏 Size: ${product.size}
+💰 Price: ₹${product.price}
+
+👉 Choose:
+
+1️⃣ Website  
+2️⃣ Pay Now  
+3️⃣ COD`
+    );
+
+} else {
+
+    await sendWhatsApp(phone,
 `${nameText}💰 Price: ₹${product.price}
 
 📏 Please select size:
 S / M / L / XL`
-            );
-        }
+    );
+}
 
-        /* ✅ HANDLE USER INPUT */
+
+
+
+        /* ✅ USER INPUT */
         else {
 
             let text = "";
 
-            // ✅ JSON message
             if (data.message_text && data.message_text.startsWith("{")) {
                 try {
                     const parsed = JSON.parse(data.message_text);
                     text = parsed.text || "";
                 } catch {}
-            }
-            // ✅ normal text
-            else if (typeof data.message_text === "string") {
+            } else if (typeof data.message_text === "string") {
                 text = data.message_text;
             }
 
-            // ✅ fallback
             if (!text && data.text) {
                 text = data.text;
             }
@@ -135,7 +217,7 @@ S / M / L / XL`
             const session = userSession[phone];
             if (!session) return res.sendStatus(200);
 
-            /* ✅ STEP 2: SIZE */
+            /* ✅ SIZE */
             if (!session.size && ["S","M","L","XL"].includes(text)) {
 
                 session.size = text;
@@ -146,88 +228,73 @@ S / M / L / XL`
 `${nameText}📏 Size: ${session.size}
 💰 Price: ₹${session.price}
 
-👉 Choose how you want to order:
+👉 Choose:
 
-1️⃣ Buy on Website (fastest ✅)  
-2️⃣ Quick Checkout (WhatsApp)  
-3️⃣ Cash on Delivery`
+1️⃣ Website  
+2️⃣ Pay Now  
+3️⃣ COD`
                 );
             }
 
-            /* ✅ OPTION 1 — WEBSITE */
+            /* ✅ WEBSITE */
             else if (text === "1") {
 
-                const nameText = session.name ? `🛍️ *${session.name}*\n\n` : "";
-
                 await sendWhatsApp(phone,
-`${nameText}✅ Continue on Website:
-
-👉 ${session.link}`
+`👉 Buy here:
+${session.link}`
                 );
 
                 delete userSession[phone];
             }
 
-            /* ✅ OPTION 2 — PAY NOW */
+            /* ✅ PAY */
             else if (text === "2") {
 
                 session.step = "address";
                 session.payment = "online";
 
                 await sendWhatsApp(phone,
-`📦 Please share your name & city:
+`📦 Enter name & city:
 
-Example:
-Rahul - Jaipur ✅`
+Rahul - Jaipur`
                 );
             }
 
-            /* ✅ OPTION 3 — COD */
+            /* ✅ COD */
             else if (text === "3") {
 
                 session.step = "address";
                 session.payment = "cod";
 
                 await sendWhatsApp(phone,
-`📦 Please share your name & city:
+`📦 Enter name & city:
 
-Example:
-Rahul - Jaipur ✅`
+Rahul - Jaipur`
                 );
             }
 
-            /* ✅ ADDRESS STEP */
+            /* ✅ ADDRESS */
             else if (session.step === "address") {
 
                 session.basic_info = data.message_text;
 
                 if (session.payment === "online") {
 
-                    const paymentLink = await createPaymentLink(
-                        session.price,
-                        phone,
-                        session
-                    );
+                    const link = await createPaymentLink(session.price, phone, session);
 
                     await sendWhatsApp(phone,
-`💳 Pay here:
-${paymentLink}`
+`💳 Pay:
+${link}`
                     );
-                }
-
-                else {
+                } else {
 
                     await sendWhatsApp(phone,
-`✅ *Order Confirmed!*
+`✅ Order Confirmed!
 
-📏 Size: ${session.size}
+📏 ${session.size}
 📍 ${session.basic_info}
 
-📞 Our team will contact you to confirm delivery details
-
-🚚 Payment: Cash on Delivery
-
-Thank you for shopping with us ❤️`
+We will contact you ✅`
                     );
                 }
 
@@ -238,12 +305,13 @@ Thank you for shopping with us ❤️`
         res.sendStatus(200);
 
     } catch (err) {
-        console.error("ERROR:", err);
+        console.error(err);
         res.sendStatus(500);
     }
 });
 
-/* ✅ START SERVER */
+/* ✅ START */
 app.listen(process.env.PORT, () => {
     console.log("Server running...");
 });
+``
