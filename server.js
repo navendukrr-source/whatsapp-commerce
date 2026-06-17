@@ -348,20 +348,21 @@ const product = {
 
             let text = "";
 
-            if (data.message_text && data.message_text.startsWith("{")) {
-                try {
-                    const parsed = JSON.parse(data.message_text);
-                    text = parsed.text || "";
-                } catch {}
-            } else if (typeof data.message_text === "string") {
-                text = data.message_text;
-            }
+try {
+    if (data.message_text && data.message_text.startsWith("{")) {
+        const parsed = JSON.parse(data.message_text);
+        text = parsed.text || "";
+    } else if (typeof data.message_text === "string") {
+        text = data.message_text;
+    }
+} catch {}
 
-            if (!text && data.text) {
-                text = data.text;
-            }
+if (!text) {
+    text = data.text || "";
+}
 
-            text = (text || "").toUpperCase().trim();
+text = (text || "").trim();
+``
 
             console.log("User text:", text);
 
