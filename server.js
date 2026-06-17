@@ -104,30 +104,32 @@ app.post("/webhook", async (req, res) => {
             if (data.message_text && data.message_text.startsWith("{")) msgObj = JSON.parse(data.message_text);
         } catch (e) {}
 
+                /* ✅ PRODUCT RECEIVED */
         if (data.message_type === "order" && msgObj?.order) {
             const productItemsArray = msgObj.order.product_items;
             if (!productItemsArray || productItemsArray.length === 0) return res.sendStatus(200);
 
-            const item = productItemsArray[0]; // Fixed: Pull individual item object out from the array index
+            const item = productItemsArray[0]; 
             const retailerId = String(item.product_retailer_id || "").trim();
             const meta = productCache[retailerId] || {};
             
-            const nativeName = item.product_name || item.name || "Product";
-            const finalName = meta.name || nameMap[retailerId] || nativeName;
+            // CRITICAL UPGRADE: Exhaustively check all native WhatsApp e-commerce key variations for the product title
+            const nativeWhatsAppName = item.title || item.product_name || item.name || item.product_metadata?.title || "Yavastrah Premium Apparel";
+            const finalName = meta.name || nameMap[retailerId] || nativeWhatsAppName;
 
             userSession[phone] = {
                 id: retailerId, 
                 price: item.item_price, 
                 name: finalName,
                 size: sizeMap[retailerId] || meta.size || "M",
-                link: linkMap[retailerId] || "https://yavastrah.com"
+                link: linkMap[retailerId] || `https://yavastrah.com{retailerId}`
             };
 
             const sText = userSession[phone].size ? `📏 Size: ${userSession[phone].size}\n` : "";
             const msg = `🛍️ *${userSession[phone].name}*\n\n${sText}💰 Price: ₹${userSession[phone].price}\n\n👉 How would you like to proceed?\n\n1️⃣ View on Website (Fastest)\n2️⃣ Pay Now (Razorpay-Secure 🔒)\n3️⃣ Cash on Delivery (COD)\n\n💬 Reply with *1, 2 or 3*`;
             await sendWhatsApp(phone, msg);
-
-        } else {
+        }
+ else {
             let text = "";
             try {
                 if (data.message_text && data.message_text.startsWith("{")) {
