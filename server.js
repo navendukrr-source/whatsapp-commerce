@@ -582,7 +582,6 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 res.sendStatus(200);
 
 } catch (err) {
-``
     console.error(err);
     res.sendStatus(500);
 });
