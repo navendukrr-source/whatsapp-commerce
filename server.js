@@ -6,173 +6,144 @@ const Razorpay = require("razorpay");
 const app = express();
 app.use(express.json());
 
-/* ✅ Razorpay setup */
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY,
     key_secret: process.env.RAZORPAY_SECRET
 });
 
-/* ✅ GLOBAL UNIFIED CATALOGUE DIRECTORY (All Sizes Fully Mapped) */
-const catalogDirectory = {
-    // 🛍️ Men's Purple Kurta with Abstract Print
-    "42164560199783": { name: "Men's Purple Kurta with Abstract Print", size: "M", link: "https://yavastrah.com" },
-    "42208950976615": { name: "Men's Purple Kurta with Abstract Print", size: "S", link: "https://yavastrah.com" },
+const productCache = {};
+const userSession = {};
 
-    // 🛍️ Men's Teal Kurta with Intricate Print
-    "42208951173223": { name: "Men's Teal Kurta with Intricate Print", size: "S", link: "https://yavastrah.com" },
-    "42208951140455": { name: "Men's Teal Kurta with Intricate Print", size: "M", link: "https://yavastrah.com" },
+/* ✅ AUTOMATIC LIVE CATALOG SYNC ENGINE */
+async function loadMetaProducts() {
+    try {
+        console.log("🔄 Syncing Meta Catalog...");
+        const res = await fetch(`https://facebook.com{process.env.CATALOG_ID}/products?fields=name,variants{retailer_id,id,sku,variant_values}&limit=250&access_token=${process.env.META_TOKEN}`);
+        const data = await res.json();
+        
+        if (data.error || !data.data) {
+            console.error("❌ Meta Sync Failed, using baseline fallbacks.");
+            return;
+        }
 
-    // 🛍️ Teal Green Multicolor Ethnic Motif Print Crop Top
-    "42150803603559": { name: "Teal Green Multicolor Ethnic Motif Print Crop Top", size: "XL", link: "https://yavastrah.com" },
-    "42150803505255": { name: "Teal Green Multicolor Ethnic Motif Print Crop Top", size: "S", link: "https://yavastrah.com" },
-    "42150803538023": { name: "Teal Green Multicolor Ethnic Motif Print Crop Top", size: "M", link: "https://yavastrah.com" },
-    "42150803570791": { name: "Teal Green Multicolor Ethnic Motif Print Crop Top", size: "L", link: "https://yavastrah.com" },
-    "42150803472487": { name: "Teal Green Multicolor Ethnic Motif Print Crop Top", size: "XS", link: "https://yavastrah.com" },
+        data.data.forEach(p => {
+            if (!p.variants?.data) return;
+            p.variants.data.forEach(v => {
+                const rawId = v.retailer_id || v.sku || v.id;
+                if (!rawId) return;
+                const cleanId = String(rawId).trim();
+                const sz = v.variant_values?.Size || v.variant_values?.size || v.variant_values?.SIZE || "M";
+                productCache[cleanId] = { name: p.name, size: sz };
+            });
+        });
+        console.log(`✅ Sync Complete: Loaded ${Object.keys(productCache).length} items.`);
+    } catch (err) {
+        console.log("⚠️ Meta Sync Engine offline.");
+    }
+}
+loadMetaProducts();
 
-    // 🛍️ Teal Blue Floral Printed Cotton Kurti
-    "42152662007911": { name: "Teal Blue Floral Printed Cotton Kurti", size: "L", link: "https://yavastrah.com" },
-    "42152661975143": { name: "Teal Blue Floral Printed Cotton Kurti", size: "M", link: "https://yavastrah.com" },
-    "42152661909607": { name: "Teal Blue Floral Printed Cotton Kurti", size: "XS", link: "https://yavastrah.com" },
-    "42152662040679": { name: "Teal Blue Floral Printed Cotton Kurti", size: "XL", link: "https://yavastrah.com" },
-    "42152661942375": { name: "Teal Blue Floral Printed Cotton Kurti", size: "S", link: "https://yavastrah.com" },
+async function sendWhatsApp(to, message) {
+    try {
+        await fetch(process.env.GETGABS_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                to, type: "text", messaging_product: "whatsapp",
+                recipient_type: "individual", text: { body: message },
+                api_key: process.env.GETGABS_TOKEN
+            })
+        });
+    } catch (e) {
+        console.error("WA Drop:", e);
+    }
+}
 
-    // 🛍️ Ivory & Mustard Floral Printed Cotton Kurti
-    "42170985840743": { name: "Ivory & Mustard Floral Printed Cotton Kurti", size: "XS", link: "https://yavastrah.com" },
-    "42170985971815": { name: "Ivory & Mustard Floral Printed Cotton Kurti", size: "XL", link: "https://yavastrah.com" },
-    "42170985939047": { name: "Ivory & Mustard Floral Printed Cotton Kurti", size: "L", link: "https://yavastrah.com" },
-    "42170985873511": { name: "Ivory & Mustard Floral Printed Cotton Kurti", size: "S", link: "https://yavastrah.com" },
-    "42170985906279": { name: "Ivory & Mustard Floral Printed Cotton Kurti", size: "M", link: "https://yavastrah.com" },
+async function createPaymentLink(amount, phone, product) {
+    const link = await razorpay.paymentLink.create({
+        amount: Math.round(amount * 100), currency: "INR", description: `${product.name}`,
+        customer: { contact: phone },
+        notes: { Product: product.name, Size: product.size || "M", Price: `₹${product.price}`, Address: product.basic_info || "-" }
+    });
+    return link.short_url;
+}
 
-    // 🛍️ Sunshine Yellow Floral Printed Cotton Kurti
-    "42150768509031": { name: "Sunshine Yellow Floral Printed Cotton Kurti", size: "M", link: "https://yavastrah.com" },
-    "42150768574567": { name: "Sunshine Yellow Floral Printed Cotton Kurti", size: "XL", link: "https://yavastrah.com" },
-    "42150768443495": { name: "Sunshine Yellow Floral Printed Cotton Kurti", size: "XS", link: "https://yavastrah.com" },
-    "42150768541799": { name: "Sunshine Yellow Floral Printed Cotton Kurti", size: "L", link: "https://yavastrah.com" },
-    "42150768476263": { name: "Sunshine Yellow Floral Printed Cotton Kurti", size: "S", link: "https://yavastrah.com" },
+/* ✅ WEBHOOK ENDPOINT */
+app.post("/webhook", async (req, res) => {
+    try {
+        const data = req.body;
+        if (!data.message_text && !data.text) return res.sendStatus(200);
 
-    // 🛍️ Mustard Yellow High-Low Kurti
-    "42150795116647": { name: "Mustard Yellow High-Low Kurti", size: "S", link: "https://yavastrah.com" },
-    "42150795083879": { name: "Mustard Yellow High-Low Kurti", size: "XS", link: "https://yavastrah.com" },
-    "42150795182183": { name: "Mustard Yellow High-Low Kurti", size: "L", link: "https://yavastrah.com" },
-    "42150795214951": { name: "Mustard Yellow High-Low Kurti", size: "XL", link: "https://yavastrah.com" },
-    "42150795149415": { name: "Mustard Yellow High-Low Kurti", size: "M", link: "https://yavastrah.com" },
+        const phone = data.wa_id;
+        let msgObj = null;
+        try {
+            if (data.message_text && data.message_text.startsWith("{")) msgObj = JSON.parse(data.message_text);
+        } catch (e) {}
 
-    // 🛍️ Rust Red Ethnic Motif Print Crop Top
-    "42150804291687": { name: "Rust Red Ethnic Motif Print Crop Top", size: "XL", link: "https://yavastrah.com" },
-    "42150804258919": { name: "Rust Red Ethnic Motif Print Crop Top", size: "L", link: "https://yavastrah.com" },
-    "42150804226151": { name: "Rust Red Ethnic Motif Print Crop Top", size: "M", link: "https://yavastrah.com" },
-    "42150804193383": { name: "Rust Red Ethnic Motif Print Crop Top", size: "S", link: "https://yavastrah.com" },
-    "42150804160615": { name: "Rust Red Ethnic Motif Print Crop Top", size: "XS", link: "https://yavastrah.com" },
+        /* 🛒 CASE 1: DIRECT CART ORDERS FROM CATALOG */
+        if (data.message_type === "order" && msgObj?.order) {
+            const productItemsArray = msgObj.order.product_items;
+            if (!productItemsArray || productItemsArray.length === 0) return res.sendStatus(200);
 
-    // 🛍️ Ruby Red High-Low Kurti
-    "42150793150567": { name: "Ruby Red High-Low Kurti", size: "S", link: "https://yavastrah.com" },
-    "42150793183335": { name: "Ruby Red High-Low Kurti", size: "M", link: "https://yavastrah.com" },
-    "42150793117799": { name: "Ruby Red High-Low Kurti", size: "XS", link: "https://yavastrah.com" },
-    "42150793216103": { name: "Ruby Red High-Low Kurti", size: "L", link: "https://yavastrah.com" },
-    "42150793248871": { name: "Ruby Red High-Low Kurti", size: "XL", link: "https://yavastrah.com" },
+            // Secure array unpacking mapping assignment 
+            const item = productItemsArray[0]; 
+            const retailerId = String(item.product_retailer_id || "").trim();
+            const meta = productCache[retailerId] || {};
 
-    // 🛍️ Navy Blue Ethnic Print Crop Top
-    "42150804848743": { name: "Navy Blue Ethnic Print Crop Top", size: "L", link: "https://yavastrah.com" },
-    "42150804881511": { name: "Navy Blue Ethnic Print Crop Top", size: "XL", link: "https://yavastrah.com" },
-    "42150804783207": { name: "Navy Blue Ethnic Print Crop Top", size: "S", link: "https://yavastrah.com" },
-    "42150804815975": { name: "Navy Blue Ethnic Print Crop Top", size: "M", link: "https://yavastrah.com" },
-    "42208996982887": { name: "Navy Blue Ethnic Print Crop Top", size: "XS", link: "https://yavastrah.com" },
+            // Dynamic Auto-Name Fallback if product item isn't cached yet
+            const finalName = meta.name || "Yavastrah Collection Apparel";
+            const finalSize = meta.size || "M";
+            const finalLink = `https://yavastrah.com{retailerId}`;
 
-    // 🛍️ Mustard Yellow multicolor paisley Angrakha Kurti
-    "42150798393447": { name: "Mustard Yellow Multicolor Paisley Angrakha Kurti", size: "S", link: "https://yavastrah.com" },
-    "42150798458983": { name: "Mustard Yellow Multicolor Paisley Angrakha Kurti", size: "L", link: "https://yavastrah.com" },
-    "42150798360679": { name: "Mustard Yellow Multicolor Paisley Angrakha Kurti", size: "XS", link: "https://yavastrah.com" },
-    "42150798426215": { name: "Mustard Yellow Multicolor Paisley Angrakha Kurti", size: "M", link: "https://yavastrah.com" },
-    "42150798491751": { name: "Mustard Yellow Multicolor Paisley Angrakha Kurti", size: "XL", link: "https://yavastrah.com" },
+            userSession[phone] = {
+                id: retailerId, price: item.item_price, name: finalName, size: finalSize, link: finalLink
+            };
 
-    // 🛍️ Mustard Yellow Printed Kurta Palazzo Set
-    "42147500195943": { name: "Mustard Yellow Printed Kurta Palazzo Set", size: "M", link: "https://yavastrah.com" },
-    "42147500163175": { name: "Mustard Yellow Printed Kurta Palazzo Set", size: "S", link: "https://yavastrah.com" },
-    "42147500261479": { name: "Mustard Yellow Printed Kurta Palazzo Set", size: "XL", link: "https://yavastrah.com" },
-    "42147500228711": { name: "Mustard Yellow Printed Kurta Palazzo Set", size: "L", link: "https://yavastrah.com" },
-    "42147500130407": { name: "Mustard Yellow Printed Kurta Palazzo Set", size: "XS", link: "https://yavastrah.com" },
+            const msg = `🛍️ *${finalName}*\n\n📏 Size: ${finalSize}\n💰 Price: ₹${item.item_price}\n\n👉 How would you like to proceed?\n\n1️⃣ View on Website (Fastest)\n2️⃣ Pay Now (Razorpay-Secure 🔒)\n3️⃣ Cash on Delivery (COD)\n\n💬 Reply with *1, 2 or 3*`;
+            await sendWhatsApp(phone, msg);
 
-    // 🛍️ Red Floral Ethnic Motif Print Crop Top
-    "42150805307495": { name: "Red Floral Ethnic Motif Print Crop Top", size: "XL", link: "https://yavastrah.com" },
-    "42150805274727": { name: "Red Floral Ethnic Motif Print Crop Top", size: "L", link: "https://yavastrah.com" },
-    "42150805241959": { name: "Red Floral Ethnic Motif Print Crop Top", size: "M", link: "https://yavastrah.com" },
-    "42150805209191": { name: "Red Floral Ethnic Motif Print Crop Top", size: "S", link: "https://yavastrah.com" },
-    "42150805176423": { name: "Red Floral Ethnic Motif Print Crop Top", size: "XS", link: "https://yavastrah.com" },
+        } else {
+            /* 💬 CASE 2: USER INPUT SELECTION STRINGS */
+            let text = "";
+            try {
+                if (data.message_text && data.message_text.startsWith("{")) {
+                    text = JSON.parse(data.message_text).text || "";
+                } else if (typeof data.message_text === "string") {
+                    text = data.message_text;
+                }
+            } catch (e) {}
+            if (!text) text = data.text || "";
+            text = text.trim();
 
-    // 🛍️ Blush Pink Floral Printed Cotton Kurti
-    "42150755008615": { name: "Blush Pink Floral Printed Cotton Kurti", size: "L", link: "https://yavastrah.com" },
-    "42150755041383": { name: "Blush Pink Floral Printed Cotton Kurti", size: "XL", link: "https://yavastrah.com" },
-    "42150754975847": { name: "Blush Pink Floral Printed Cotton Kurti", size: "M", link: "https://yavastrah.com" },
-    "42150754943079": { name: "Blush Pink Floral Printed Cotton Kurti", size: "S", link: "https://yavastrah.com" },
-    "42150754484327": { name: "Blush Pink Floral Printed Cotton Kurti", size: "XS", link: "https://yavastrah.com" },
+            const session = userSession[phone];
+            if (!session) return res.sendStatus(200);
 
-    // 🛍️ Powder Blue Floral Printed Cotton Kurti
-    "42150754549863": { name: "Powder Blue Floral Printed Cotton Kurti", size: "M", link: "https://yavastrah.com" },
-    "42150754517095": { name: "Powder Blue Floral Printed Cotton Kurti", size: "S", link: "https://yavastrah.com" },
-    "42150754615399": { name: "Powder Blue Floral Printed Cotton Kurti", size: "XL", link: "https://yavastrah.com" },
-    "42150754582631": { name: "Powder Blue Floral Printed Cotton Kurti", size: "L", link: "https://yavastrah.com" },
-    "42150754910311": { name: "Powder Blue Floral Printed Cotton Kurti", size: "XS", link: "https://yavastrah.com" },
+            if (text.includes("1")) {
+                await sendWhatsApp(phone, `🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 Price: ₹${session.price}\n\n🛒 Buy here:\n${session.link}`);
+                delete userSession[phone];
+            } else if (text === "2") {
+                session.step = "address"; session.payment = "online";
+                await sendWhatsApp(phone, "📦 Enter name & city:\n\nFor Example : Rahul - Jaipur");
+            } else if (text === "3" || text.includes("3")) {
+                session.step = "address"; session.payment = "cod";
+                await sendWhatsApp(phone, "📦 Enter name & city:\n\nRahul - Jaipur");
+            } else if (session.step === "address") {
+                session.basic_info = text;
+                if (session.payment === "online") {
+                    const link = await createPaymentLink(session.price, phone, session);
+                    await sendWhatsApp(phone, `🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 Amount: ₹${session.price}\n\n💳 Pay here:\n${link}\n\n✅ Secure Link generated.`);
+                } else {
+                    await sendWhatsApp(phone, `✅ Order Confirmed!\n\n🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 ₹${session.price}\n📍 ${session.basic_info}\n\n📞 You will receive confirmation via call shortly`);
+                    delete userSession[phone];
+                }
+            }
+        }
+        res.sendStatus(200);
+    } catch (err) {
+        console.error(err);
+        res.sendStatus(500);
+    }
+});
 
-    // 🛍️ Red Printed Kurta Palazzo Set
-    "42147507273831": { name: "Red Printed Kurta Palazzo Set", size: "S", link: "https://yavastrah.com" },
-    "42147507372135": { name: "Red Printed Kurta Palazzo Set", size: "XL", link: "https://yavastrah.com" },
-    "42147507306599": { name: "Red Printed Kurta Palazzo Set", size: "M", link: "https://yavastrah.com" },
-    "42147507339367": { name: "Red Printed Kurta Palazzo Set", size: "L", link: "https://yavastrah.com" },
-    "42147507241063": { name: "Red Printed Kurta Palazzo Set", size: "XS", link: "https://yavastrah.com" },
-
-    // 🛍️ Off-White Floral Print Cotton Shirt
-"42147386949735": { name: "Off-White Floral Print Cotton Shirt", size: "M", link: "yavastrah.com" },
-"42147386982503": { name: "Off-White Floral Print Cotton Shirt", size: "L", link: "yavastrah.com" },
- "42147387015271": { name: "Off-White Floral Print Cotton Shirt", size: "XL", link: "yavastrah.com" },
-
-    // 🛍️ Ivory & Blush Pink Floral Printed Cotton Kurti
-    "42170984300647": { name: "Ivory & Blush Pink Floral Printed Cotton Kurti", size: "XS", link: "https://yavastrah.com" },
-    "42170984333415": { name: "Ivory & Blush Pink Floral Printed Cotton Kurti", size: "S", link: "https://yavastrah.com" },
-    "42170984431719": { name: "Ivory & Blush Pink Floral Printed Cotton Kurti", size: "XL", link: "https://yavastrah.com" },
-    "42170984366183": { name: "Ivory & Blush Pink Floral Printed Cotton Kurti", size: "M", link: "https://yavastrah.com" },"42170984398951": { name: "Ivory & Blush Pink Floral Printed Cotton Kurti", size: "L", link: "https://yavastrah.com" },
-
-    // 🛍️ Maroon & Black Geometric Print A-Line Flare Dress
-"42150797738087": { name: "Maroon & Black Geometric Print A-Line Flare Dress", size: "XL", link: "https://yavastrah.com" },
-"42150797607015": { name: "Maroon & Black Geometric Print A-Line Flare Dress", size: "XS", link: "https://yavastrah.com" },
-"42150797705319": { name: "Maroon & Black Geometric Print A-Line Flare Dress", size: "L", link: "https://yavastrah.com" },
-"42150797639783": { name: "Maroon & Black Geometric Print A-Line Flare Dress", size: "S", link: "https://yavastrah.com" },
-"42150797672551": { name: "Maroon & Black Geometric Print A-Line Flare Dress", size: "M", link: "https://yavastrah.com" },
-    
-
-// 🛍️ Teal Blue Ethnic Motif Print Crop Top
-"42150805864551": { name: "Teal Blue Ethnic Motif Print Crop Top", size: "S", link: "https://yavastrah.com" },
-"42150805962855": { name: "Teal Blue Ethnic Motif Print Crop Top", size: "XL", link: "https://yavastrah.com" },
-"42150805930087": { name: "Teal Blue Ethnic Motif Print Crop Top", size: "L", link: "https://yavastrah.com" },
-"42150805897319": { name: "Teal Blue Ethnic Motif Print Crop Top", size: "M", link: "https://yavastrah.com" },
-"42150805831783": { name: "Teal Blue Ethnic Motif Print Crop Top", size: "XS", link: "https://yavastrah.com" },
-
-// 🛍️ Rani Pink Paisley Angrakha Kurti
-"42150797377639": { name: "Rani Pink Paisley Angrakha Kurti", size: "M", link: "https://yavastrah.com" },
-"42150797312103": { name: "Rani Pink Paisley Angrakha Kurti", size: "XS", link: "https://yavastrah.com" },
-"42150797410407": { name: "Rani Pink Paisley Angrakha Kurti", size: "L", link: "https://yavastrah.com" },
-"42150797344871": { name: "Rani Pink Paisley Angrakha Kurti", size: "S", link: "https://yavastrah.com" },
-"42150797443175": { name: "Rani Pink Paisley Angrakha Kurti", size: "XL", link: "https://yavastrah.com" },
-
-// 🛍️ Mustard Green A-Line Flare Dress
-"42147434004583": { name: "Mustard Green A-Line Flare Dress", size: "M", link: "https://yavastrah.com" },
-"42147433971815": { name: "Mustard Green A-Line Flare Dress", size: "S", link: "https://yavastrah.com" },
-"42147434070119": { name: "Mustard Green A-Line Flare Dress", size: "XL", link: "https://yavastrah.com" },
-"42147433939047": { name: "Mustard Green A-Line Flare Dress", size: "XS", link: "https://yavastrah.com" },
-"42147434037351": { name: "Mustard Green A-Line Flare Dress", size: "L", link: "https://yavastrah.com" },
-
-// 🛍️ Dark Green Printed Kurta Palazzo Set
-"42147412639847": { name: "Dark Green Printed Kurta Palazzo Set", size: "M", link: "https://yavastrah.com" },
-"42147412607079": { name: "Dark Green Printed Kurta Palazzo Set", size: "S", link: "https://yavastrah.com" },
-"42147412705383": { name: "Dark Green Printed Kurta Palazzo Set", size: "XL", link: "https://yavastrah.com" },
-"42147412574311": { name: "Dark Green Printed Kurta Palazzo Set", size: "XS", link: "https://yavastrah.com" },
-"42147412672615": { name: "Dark Green Printed Kurta Palazzo Set", size: "L", link: "https://yavastrah.com" },
-
-// 🛍️ Navy Blue Printed Kurta Palazzo Set
-"42210910699623": { name: "Navy Blue Printed Kurta Palazzo Set", size: "XS", link: "https://yavastrah.com" },
-"42210910732391": { name: "Navy Blue Printed Kurta Palazzo Set", size: "S", link: "https://yavastrah.com" },
-"42210910765159": { name: "Navy Blue Printed Kurta Palazzo Set", size: "M", link: "https://yavastrah.com" },
-"42210910797927": { name: "Navy Blue Printed Kurta Palazzo Set", size: "L", link: "https://yavastrah.com" },
-"42210910830695": { name: "Navy Blue Printed Kurta Palazzo Set", size: "XL", link: "https://yavastrah.com" }
-};
-
-const productCache = {};/* ✅ LIVE DYNAMIC CATALOG SYNC */async function loadMetaProducts() {try {const res = await fetch(https://facebook.com{process.env.CATALOG_ID}/products?fields=name,variants{retailer_id,id,sku,variant_values}&limit=250&access_token=${process.env.META_TOKEN});const data = await res.json();if (!data || !data.data) return;data.data.forEach(p => {if (!p.variants?.data) return;p.variants.data.forEach(v => {const rawId = v.retailer_id || v.sku || v.id;if (!rawId) return;const cleanId = String(rawId).trim();const sz = v.variant_values?.Size || v.variant_values?.size || v.variant_values?.SIZE || null;productCache[cleanId] = { name: p.name, size: sz };});});console.log("✅ Live Meta catalog sync engine ready");} catch (err) {console.log("⚠️ Meta Graph sync offline - Local maps running");}}loadMetaProducts();/* ✅ SEND WHATSAPP MESSAGE API ENGINE */async function sendWhatsApp(to, message) {try {await fetch(process.env.GETGABS_API, {method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({to, type: "text", messaging_product: "whatsapp",recipient_type: "individual", text: { body: message },api_key: process.env.GETGABS_TOKEN})});} catch (e) {console.error("WhatsApp messaging fault:", e);}}/* ✅ SECURE RAZORPAY PAYMENT ENGINE */async function createPaymentLink(amount, phone, product) {const link = await razorpay.paymentLink.create({amount: Math.round(amount * 100), currency: "INR", description: ${product.name},customer: { contact: phone },notes: { Product: product.name, Size: product.size || "N/A", Price: ₹${product.price}, Address: product.basic_info || "-" }});return link.short_url;}const userSession = {};/* ✅ WEBHOOK CONTROLLER ENDPOINT */app.post("/webhook", async (req, res) => {try {const data = req.body;if (!data.message_text && !data.text) return res.sendStatus(200);const phone = data.wa_id;let msgObj = null;try {if (data.message_text && data.message_text.startsWith("{")) msgObj = JSON.parse(data.message_text);} catch (e) {}/* 🛒 CASE 1: DIRECT CATALOG CART RECEIVER */if (data.message_type === "order" && msgObj?.order) {const productItemsArray = msgObj.order.product_items;if (!productItemsArray || productItemsArray.length === 0) return res.sendStatus(200);const item = productItemsArray[0];const retailerId = String(item.product_retailer_id || "").trim();const localProduct = catalogDirectory[retailerId];const meta = productCache[retailerId] || {};const unmappedItemFallback = Yavastrah Collection Item (Ref: ${retailerId.slice(-4)});const finalName = localProduct ? localProduct.name : (meta.name || unmappedItemFallback);const finalSize = localProduct ? localProduct.size : (meta.size || "M");const finalLink = localProduct ? localProduct.link : "https://yavastrah.com";userSession[phone] = {id: retailerId,price: item.item_price,name: finalName,size: finalSize,link: finalLink};const sText = userSession[phone].size ? 📏 Size: ${userSession[phone].size}\n : "";const msg = 🛍️ *${userSession[phone].name}*\n\n${sText}💰 Price: ₹${userSession[phone].price}\n\n👉 How would you like to proceed?\n\n1️⃣ View on Website (Fastest)\n2️⃣ Pay Now (Razorpay-Secure 🔒)\n3️⃣ Cash on Delivery (COD)\n\n💬 Reply with *1, 2 or 3*;await sendWhatsApp(phone, msg);} else {/* 💬 CASE 2: CONVERSATIONAL RESPONSE INTERCEPTOR */let text = "";try {if (data.message_text && data.message_text.startsWith("{")) {text = JSON.parse(data.message_text).text || "";} else if (typeof data.message_text === "string") {text = data.message_text;}} catch (e) {}if (!text) text = data.text || "";text = text.trim();const session = userSession[phone];if (!session) return res.sendStatus(200);/* ✅ CHECKOUT USER CHOICE ROUTER */if (text.includes("1")) {await sendWhatsApp(phone, 🛍️ ${session.name}\n${session.size ? 📏 Size: ${session.size}\n : ""}💰 Price: ₹${session.price}\n\n🛒 Buy here:\n${session.link});delete userSession[phone];} else if (text === "2") {session.step = "address"; session.payment = "online";await sendWhatsApp(phone, "📦 Enter name & city:\n\nFor Example : Rahul - Jaipur");} else if (text === "3" || text.includes("3")) {session.step = "address"; session.payment = "cod";await sendWhatsApp(phone, "📦 Enter name & city:\n\nRahul - Jaipur");} else if (session.step === "address") {session.basic_info = text;if (session.payment === "online") {const link = await createPaymentLink(session.price, phone, session);await sendWhatsApp(phone, 🛍️ ${session.name}\n${session.size ? 📏 Size: ${session.size}\n : ""}💰 Amount: ₹${session.price}\n\n💳 Pay here:\n${link}\n\nSecure Checkout Link generated successfully.);} else {await sendWhatsApp(phone, ✅ Order Confirmed!\n\n🛍️ ${session.name}\n${session.size ? 📏 Size: ${session.size}\n : ""}💰 ₹${session.price}\n📍 ${session.basic_info}\n\n📞 You will receive confirmation via call/SMS shortly);delete userSession[phone];}}}res.sendStatus(200);} catch (err) {console.error("System controller crash intercepted:", err);res.sendStatus(500);}});/* ✅ RUNTIME PORT MAPPING */const PORT = process.env.PORT || 3000;app.listen(PORT, () => console.log(System running cleanly on port ${PORT}));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Active on port ${PORT}`));
