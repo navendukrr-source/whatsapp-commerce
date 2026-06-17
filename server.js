@@ -14,7 +14,6 @@ const razorpay = new Razorpay({
 });
 
 /* ✅ FALLBACK MAPS */
-/* ✅ FALLBACK MAPS */
 const nameMap = {
     "42147386949735": "Off-White Floral Print Cotton Shirt"
 };
@@ -353,7 +352,7 @@ app.post("/webhook", async (req, res) => {
             if (!session) return res.sendStatus(200);
 
             /* ✅ OPTIONS */
-            iif (text.includes("1")) {
+            if (text.includes("1")) {
 
     await sendWhatsApp(phone,
 `🛍️ ${session.name}
