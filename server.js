@@ -18,6 +18,7 @@ const nameMap = {
     "42147387015271": "Off-White Floral Print Cotton Shirt"
 };
 
+
 const linkMap = {
     "42147386949735": "https://yavastrah.com/products/off-white-floral-print-cotton-shirt"
 };
@@ -362,7 +363,7 @@ app.post("/webhook", async (req, res) => {
 For Example : Rahul - Jaipur`
                 );
 
-            } else if (text === "3") {
+            } else if (text === "3" || text.includes("3")) {
                 session.step = "address";
                 session.payment = "cod";
                 await sendWhatsApp(phone,
