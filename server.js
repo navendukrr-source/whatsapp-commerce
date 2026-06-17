@@ -270,12 +270,12 @@ app.post("/webhook", async (req, res) => {
         : (nameMap[retailerId] || nativeWhatsAppName);
 
             userSession[phone] = {
-                id: retailerId, 
-                price: item.item_price, 
-                name: finalName,
-                size: sizeMap[retailerId] || meta.size || "M",
-                linkMap[retailerId] || `https://yavastrah.com
-            };
+    id: retailerId,
+    price: item.item_price,
+    name: finalName,
+    size: sizeMap[retailerId] || meta.size || "M",
+    link: linkMap[retailerId] || "https://yavastrah.com"
+};
 
             const sText = userSession[phone].size ? `📏 Size: ${userSession[phone].size}\n` : "";
             const msg = `🛍️ *${userSession[phone].name}*\n\n${sText}💰 Price: ₹${userSession[phone].price}\n\n👉 How would you like to proceed?\n\n1️⃣ View on Website (Fastest)\n2️⃣ Pay Now (Razorpay-Secure 🔒)\n3️⃣ Cash on Delivery (COD)\n\n💬 Reply with *1, 2 or 3*`;
