@@ -11,9 +11,19 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_SECRET
 });
 
-/* ✅ GLOBAL UNIFIED CATALOGUE DIRECTORY (Add all products here) */
-const catalogDirectory = {
-// ✅ Men's Purple Kurta with Abstract Print
+/* ✅ FALLBACK MAPS */
+const nameMap = {
+    "42147386949735": "Off-White Floral Print Cotton Shirt"
+};
+
+const linkMap = {
+    "42147386949735": "https://yavastrah.com/products/off-white-floral-print-cotton-shirt"
+};
+
+/* ✅ SIZE MAP (FROM YOUR CATALOG) */
+const sizeMap = {
+
+    // ✅ Men's Purple Kurta with Abstract Print
     "42164560199783": "M",
     "42208950976615": "S",
 
@@ -179,6 +189,7 @@ const catalogDirectory = {
 };
 
 
+
 const productCache = {};
 
 async function loadMetaProducts() {
@@ -263,7 +274,7 @@ app.post("/webhook", async (req, res) => {
                 price: item.item_price, 
                 name: finalName,
                 size: sizeMap[retailerId] || meta.size || "M",
-                link: linkMap[retailerId] || `https://yavastrah.com{retailerId}`
+                linkMap[retailerId] || `https://yavastrah.com
             };
 
             const sText = userSession[phone].size ? `📏 Size: ${userSession[phone].size}\n` : "";
