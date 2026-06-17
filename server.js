@@ -353,9 +353,19 @@ app.post("/webhook", async (req, res) => {
             if (!session) return res.sendStatus(200);
 
             /* ✅ OPTIONS */
-            if (text === "1") {
-                await sendWhatsApp(phone, `👉 Buy here:\n${session.link}`);
-                delete userSession[phone];
+            iif (text.includes("1")) {
+
+    await sendWhatsApp(phone,
+`🛍️ ${session.name}
+${session.size ? `📏 Size: ${session.size}\n` : ""}
+💰 Price: ₹${session.price}
+
+🛒 Buy here:
+${session.link}`
+    );
+
+    delete userSession[phone];
+}
 
             } else if (text === "2") {
                 session.step = "address";
