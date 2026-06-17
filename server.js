@@ -17,7 +17,7 @@ const razorpay = new Razorpay({
 const nameMap = {
     "42147387015271": "Off-White Floral Print Cotton Shirt"
 };
-``
+
 
 const linkMap = {
     "42147386949735": "https://yavastrah.com/products/off-white-floral-print-cotton-shirt"
@@ -233,6 +233,7 @@ async function loadMetaProducts() {
     } catch (err) {
         console.log("⚠️ Meta load failed — fallback working");
     }
+    }
 /* ✅ LOAD ON START */
 loadMetaProducts();
 
@@ -307,10 +308,10 @@ app.post("/webhook", async (req, res) => {
             const metaData = productCache[item.product_retailer_id] || {};
 
             const productName =
-    metaData.name ||
-    nameMap[item.product_retailer_id] ||
-    "Product";
-``
+   metaData.name ||
+nameMap[item.product_retailer_id] ||
+"Product"
+
 
 const product = {
     id: item.product_retailer_id,
@@ -343,7 +344,7 @@ const product = {
 2️⃣ Pay Now (Razorpay-Secure 🔒)  
 3️⃣ Cash on Delivery (COD)
 
-💬 Reply with *1 / 2 / 3*`
+💬 Reply with *1, 2 or 3*`
 );
 
         } else {
@@ -366,7 +367,7 @@ if (!text) {
 }
 
 text = (text || "").trim();
-``
+
 
             console.log("User text:", text);
 
@@ -428,7 +429,7 @@ ${link}
 
 ✅ You will receive confirmation after payment via SMS/WhatsApp`
 );
-``
+
 
                 } else {
 
@@ -443,8 +444,8 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 
 📞 You will receive confirmation via call/SMS shortly`
 );
-``
-                delete userSession[phone];
+
+delete userSession[phone];
             }
         }
 
