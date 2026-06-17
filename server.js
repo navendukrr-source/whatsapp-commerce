@@ -233,8 +233,6 @@ async function loadMetaProducts() {
     } catch (err) {
         console.log("⚠️ Meta load failed — fallback working");
     }
-}
-
 /* ✅ LOAD ON START */
 loadMetaProducts();
 
