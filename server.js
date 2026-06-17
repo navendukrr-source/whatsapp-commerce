@@ -339,9 +339,8 @@ const product = {
 2️⃣ Pay Now (Razorpay-Secure 🔒)  
 3️⃣ Cash on Delivery (COD)
 
-💬 Reply with *1 / 2 / 3*
-
-            );
+💬 Reply with *1 / 2 / 3*`
+);
 
         } else {
 
