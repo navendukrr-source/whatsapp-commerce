@@ -290,40 +290,20 @@ app.post("/webhook", async (req, res) => {
             // ignore parse errors
         }
 
-        /* ✅ PRODUCT RECEIVED */
+         /* ✅ PRODUCT RECEIVED */
         if (data.message_type === "order" && messageText?.order) {
+
             const item = messageText.order.product_items[0];
-            let metaData = productCache[item.product_retailer_id];
 
-if (!metaData) {
-    // fallback: try matching via sizeMap group
-    if (sizeMap[item.product_retailer_id]) {
-        metaData = {
-            name: "Off-White Floral Print Cotton Shirt" // temporary fallback
-        };
-    }
-}
+            const metaData = productCache[item.product_retailer_id] || {};
 
-metaData = metaData || {};
-
-           
-const productName =
-    (metaData.name && metaData.name.trim() !== "")
-        ? metaData.name
-        : "Product";
-
-
-            const product = {
-                id: item.product_retailer_id,
-                price: item.item_price,
-                name: productName,
-                size:
-                    sizeMap[item.product_retailer_id] ||
-                    metaData.size ||
-                    null,
-                link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
-            };
-
+          const product = {
+    id: item.product_retailer_id,
+    price: item.item_price,
+    name: metaData.name || nameMap[item.product_retailer_id] || "",
+    size: sizeMap[item.product_retailer_id] || null,
+    link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
+};
             userSession[phone] = product;
 
             const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
@@ -331,6 +311,7 @@ const productName =
             await sendWhatsApp(phone,
 `${nameText}${product.size ? `📏 Size: ${product.size}\n` : ""}
 💰 Price: ₹${product.price}
+
 
 👉 How would you like to proceed?
 
