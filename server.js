@@ -104,18 +104,14 @@ app.post("/webhook", async (req, res) => {
             if (data.message_text && data.message_text.startsWith("{")) msgObj = JSON.parse(data.message_text);
         } catch (e) {}
 
-                /* ✅ PRODUCT RECEIVED */
         if (data.message_type === "order" && msgObj?.order) {
-            // FIX: Explicitly target the first item inside the items array index
             const productItemsArray = msgObj.order.product_items;
             if (!productItemsArray || productItemsArray.length === 0) return res.sendStatus(200);
-            
-            const item = productItemsArray[0]; // Extracting item object out from array index
-            const retailerId = String(item.product_retailer_id || "").trim();
 
+            const item = productItemsArray[0]; // Fixed: Pull individual item object out from the array index
+            const retailerId = String(item.product_retailer_id || "").trim();
             const meta = productCache[retailerId] || {};
             
-            // Extract the native product title directly from the cart payload if Meta fails
             const nativeName = item.product_name || item.name || "Product";
             const finalName = meta.name || nameMap[retailerId] || nativeName;
 
@@ -123,24 +119,8 @@ app.post("/webhook", async (req, res) => {
                 id: retailerId, 
                 price: item.item_price, 
                 name: finalName,
-                size: sizeMap[retailerId] || meta.size || "M", // Falls back to catalog size mapping or "M"
+                size: sizeMap[retailerId] || meta.size || "M",
                 link: linkMap[retailerId] || "https://yavastrah.com"
-            };
-
-            const sText = userSession[phone].size ? `📏 Size: ${userSession[phone].size}\n` : "";
-            const msg = `🛍️ *${userSession[phone].name}*\n\n${sText}💰 Price: ₹${userSession[phone].price}\n\n👉 How would you like to proceed?\n\n1️⃣ View on Website (Fastest)\n2️⃣ Pay Now (Razorpay-Secure 🔒)\n3️⃣ Cash on Delivery (COD)\n\n💬 Reply with *1, 2 or 3*`;
-            await sendWhatsApp(phone, msg);
-
-        }
- {
-            const item = msgObj.order.product_items[0];
-            const meta = productCache[item.product_retailer_id] || {};
-            const finalName = meta.name || nameMap[item.product_retailer_id] || item.product_name || item.name || "Product";
-
-            userSession[phone] = {
-                id: item.product_retailer_id, price: item.item_price, name: finalName,
-                size: sizeMap[item.product_retailer_id] || meta.size || null,
-                link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
             };
 
             const sText = userSession[phone].size ? `📏 Size: ${userSession[phone].size}\n` : "";
