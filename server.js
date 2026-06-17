@@ -15,7 +15,9 @@ const razorpay = new Razorpay({
 
 /* ✅ FALLBACK MAPS */
 const nameMap = {
-    "42147386949735": "Off-White Floral Print Cotton Shirt"
+    "42147386949735": "Off-White Floral Print Cotton Shirt",
+    "42147386982503": "Off-White Floral Print Cotton Shirt",
+    "42147387015271": "Off-White Floral Print Cotton Shirt"
 };
 
 const linkMap = {
@@ -293,10 +295,12 @@ app.post("/webhook", async (req, res) => {
             const item = messageText.order.product_items[0];
             const metaData = productCache[item.product_retailer_id] || {};
 
-            const productName =
+           
+const productName =
     (metaData.name && metaData.name.trim() !== "")
         ? metaData.name
-        : nameMap[item.product_retailer_id] || "Product";
+        : "Product";
+
 
             const product = {
                 id: item.product_retailer_id,
