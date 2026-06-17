@@ -578,8 +578,16 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
  delete userSession[phone];
 }
 
+/* ✅ VERY IMPORTANT — ADD THIS */
+res.sendStatus(200);
+
+} catch (err) {
+    console.error(err);
+    res.sendStatus(500);
+}
+});   // ✅ this closes app.post
+
 /* ✅ START SERVER */
 app.listen(process.env.PORT, () => {
     console.log("Server running...");
-});
 });
