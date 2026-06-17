@@ -198,6 +198,8 @@ async function loadMetaProducts() {
 const res = await fetch(
 `https://graph.facebook.com/v19.0/${process.env.CATALOG_ID}/products?fields=name,variants{retailer_id,variant_values}&limit=100&access_token=${process.env.META_TOKEN}`
 );
+        console.log("CACHE SIZE:", Object.keys(productCache).length);
+        console.log("META SAMPLE:", productCache);
  const data = await res.json();
         if (!data.data) return;
         data.data.forEach(p => {
