@@ -440,10 +440,11 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 );
 
 delete userSession[phone];
-}
-}   // ✅ THIS IS THE MISSING LINE
+        }   // ✅ closes (session.step === "address")
 
-res.sendStatus(200);
+    }   // ✅ closes main else block
+
+    res.sendStatus(200);
 
 } catch (err) {
     console.error(err);
