@@ -293,7 +293,18 @@ app.post("/webhook", async (req, res) => {
         /* ✅ PRODUCT RECEIVED */
         if (data.message_type === "order" && messageText?.order) {
             const item = messageText.order.product_items[0];
-            const metaData = productCache[item.product_retailer_id] || {};
+            let metaData = productCache[item.product_retailer_id];
+
+if (!metaData) {
+    // fallback: try matching via sizeMap group
+    if (sizeMap[item.product_retailer_id]) {
+        metaData = {
+            name: "Off-White Floral Print Cotton Shirt" // temporary fallback
+        };
+    }
+}
+
+metaData = metaData || {};
 
            
 const productName =
