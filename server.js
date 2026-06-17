@@ -15,9 +15,7 @@ const razorpay = new Razorpay({
 
 /* ✅ FALLBACK MAPS */
 const nameMap = {
-    "42147386949735": "Off-White Floral Print Cotton Shirt",
-    "42147386982503": "Off-White Floral Print Cotton Shirt",
-    "42147387015271": "Off-White Floral Print Cotton Shirt"
+    "42147386949735": "Off-White Floral Print Cotton Shirt"
 };
 
 const linkMap = {
@@ -208,11 +206,14 @@ async function loadMetaProducts() {
         if (!data.data) return;
 
         data.data.forEach(p => {
+
             const productName = p.name;
+
             if (!p.variants?.data) return;
 
             p.variants.data.forEach(variant => {
                 const id = variant.retailer_id;
+
                 const size =
                     variant.variant_values?.Size ||
                     variant.variant_values?.size ||
@@ -223,6 +224,7 @@ async function loadMetaProducts() {
                     size: size || null
                 };
             });
+
         });
 
         console.log("✅ Meta products + variants loaded");
@@ -231,6 +233,7 @@ async function loadMetaProducts() {
         console.log("⚠️ Meta load failed — fallback working");
     }
 }
+
 /* ✅ LOAD ON START */
 loadMetaProducts();
 
