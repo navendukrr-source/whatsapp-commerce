@@ -299,9 +299,6 @@ app.post("/webhook", async (req, res) => {
         // (product, options, coupon, address etc.)
 
 
-        console.error(err);
-        res.sendStatus(500);
-    }
         /* ✅ PRODUCT RECEIVED */
         if (data.message_type === "order" && messageText?.order) {
 
