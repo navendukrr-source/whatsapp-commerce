@@ -297,18 +297,23 @@ app.post("/webhook", async (req, res) => {
         }
 
         /* ✅ SCENARIO 1: INCOMING ORDER FROM WHATSAPP CATALOG */
-        // Explicitly inspect multiple payload variations to detect cart drop events
         const isOrder = data.message_type === "order" || parsedJSON?.order || data.order;
 
         if (isOrder) {
             const orderPayload = parsedJSON?.order || data.order || {};
             const productItems = orderPayload.product_items || [];
-            const item = productItems[0] || {};
+            
+            // Fixed: Secure alternative if product arrays are completely blank or unpopulated
+            if (!productItems || productItems.length === 0) {
+                return res.sendStatus(200);
+            }
+
+            const item = productItems[0]; // Safely grab the first cart item element
             
             const variantId = String(item.product_retailer_id || "").trim();
             const metaData = productCache[variantId] || {};
 
-            // CRITICAL FIX: Extract item.product_name from WhatsApp's native payload if maps are blank
+            // Extract item.product_name from WhatsApp's native payload if maps are blank
             const fallbackName = item.product_name || item.name || "Off-White Floral Print Cotton Shirt";
             const productName = metaData.name || nameMap[variantId] || fallbackName;
 
