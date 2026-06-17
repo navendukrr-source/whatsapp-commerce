@@ -310,23 +310,22 @@ app.post("/webhook", async (req, res) => {
             const productName =
    metaData.name ||
 nameMap[item.product_retailer_id] ||
-"Product"
+"Product";
 
+
+const productName =
+    metaData.name ||
+    nameMap[item.product_retailer_id] ||
+    "Product";
 
 const product = {
     id: item.product_retailer_id,
     price: item.item_price,
-    name:
-    metaData.name ||
-    nameMap[item.product_retailer_id] ||
-    "Product",
-``
-
+    name: productName,
     size:
-        sizeMap[item.product_retailer_id] ||   // ✅ USE sizeMap FIRST
-        metaData.size ||                      // fallback
+        sizeMap[item.product_retailer_id] ||
+        metaData.size ||
         null,
-
     link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
 };
 
