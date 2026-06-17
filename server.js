@@ -259,15 +259,16 @@ async function createPaymentLink(amount, phone, product) {
         amount: amount * 100,
         currency: "INR",
 
-        description: `🛍️ ${product.name}${product.size ? ` | ${product.size}` : ""}`,
+        description: `${product.name}${product.size ? ` | ${product.size}` : ""}`,
 
         customer: { contact: phone },
 
-        notes: {
-            product_name: product.name,
-            price: product.price,
-            size: product.size
-        }
+       notes: {
+   product_name: product.name,
+   size: product.size,
+   price: product.price
+}
+
     });
 
     return link.short_url;
