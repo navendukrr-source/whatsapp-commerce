@@ -298,9 +298,7 @@ app.post("/webhook", async (req, res) => {
         // ✅ IMPORTANT: PUT ALL YOUR EXISTING CODE BELOW THIS LINE
         // (product, options, coupon, address etc.)
 
-        res.sendStatus(200);
 
-    } catch (err) {
         console.error(err);
         res.sendStatus(500);
     }
