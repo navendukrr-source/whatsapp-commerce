@@ -346,10 +346,31 @@ app.post("/webhook", async (req, res) => {
             text = (text || "").toUpperCase().trim();
 
             console.log("User text:", text);
+              // ✅ GLOBAL MENU RESET
+if (text === "MENU" || text === "HOME") {
+
+    delete userSession[phone];
+
+    await sendWhatsApp(phone,
+`🏠 Back to start
+
+👉 Please select product again`
+    );
+
+    return;
+}
 
             const session = userSession[phone];
             if (!session) return res.sendStatus(200);
 
+          if (["1","2","3"].includes(text)) {
+    session.step = null;
+
+    // ✅ ADD THIS LINE (this is the real fix)
+    if (session.originalPrice) {
+        session.price = session.originalPrice;
+    }
+}
             /* ✅ OPTIONS */
 
 if (text === "1") {
@@ -371,6 +392,11 @@ else if (text === "2") {
     session.step = "coupon";
     session.payment = "online";
 
+    // ✅ SAVE ORIGINAL PRICE (IMPORTANT)
+    if (!session.originalPrice) {
+        session.originalPrice = session.price;
+    }
+
     await sendWhatsApp(phone,
 `🛍️ ${session.name}
 ${session.size ? `📏 Size: ${session.size}` : ""}
@@ -378,76 +404,50 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 
 💥 Available Offers:
 
-1️⃣ YAVASTRAH25 - First purchase Offer (Except Crop Tops)
-✅ Flat 25% OFF  
+1️⃣ YAVASTRAH25 (Except Crop Tops)
 
 2️⃣ YVSTRAH15  
 ${session.price >= 1199 
     ? "✅ Available" 
-    : `🔒 Add ₹${1199 - session.price} more to unlock`}  
+    : `🔒 Add ₹${1199 - session.price} more`}  
 
 3️⃣ YVSTRAH20  
 ${session.price >= 1899 
     ? "✅ Available" 
-    : `🔒 Add ₹${1899 - session.price} more to unlock`}  
+    : `🔒 Add ₹${1899 - session.price} more`}  
 
 4️⃣ CROPTOP20  
 ${session.name.toLowerCase().includes("crop top") 
     ? "✅ Applicable" 
     : "❌ Only for crop tops"}
 
-5️⃣ Skip
+5️⃣ Skip  
+6️⃣ Back
 
-👉 Reply 1 / 2 / 3 / 4 / 5`
-);
-
-
-} 
-else if (text === "4") {
-
-    const isCropTop =
-        session.name.toLowerCase().includes("crop top");
-
-    if (isCropTop) {
-
-        const discount = Math.round(session.price * 0.20);
-        session.price -= discount;
-
-        session.step = "address";
-
-        await sendWhatsApp(phone,
-`✅ CROPTOP20 applied!
-
-🛍️ ${session.name}
-${session.size ? `📏 Size: ${session.size}` : ""}
-
-💸 Discount: ₹${discount}
-💰 Final Price: ₹${session.price}
-
-📦 Enter name & city`
-        );
-
-    } else {
-
-        await sendWhatsApp(phone,
-`❌ This coupon is only valid for Crop Tops
-
-👉 Try another option`
-        );
-    }
+👉 Reply 1 / 2 / 3 / 4 / 5 / 6`
+    );
 }
+
 /* ✅ COUPON LOGIC */
 else if (session.step === "coupon") {
 
     const isCropTop =
-        session.name.toLowerCase().includes("crop top") ||
-        session.name.toLowerCase().includes("croptop");
+        session.name.toLowerCase().includes("crop top");
+
+    // ✅ RESET PRICE BEFORE APPLYING NEW COUPON
+    session.price = session.originalPrice;
 
     let discount = 0;
 
     if (text === "1") {
 
-        discount = Math.round(session.price * 0.25);
+        if (!isCropTop) {
+            discount = Math.round(session.price * 0.25);
+        } else {
+            await sendWhatsApp(phone,
+`❌ Not valid on Crop Tops`);
+            return;
+        }
 
     } 
     else if (text === "2" && session.price >= 1199) {
@@ -460,19 +460,17 @@ else if (session.step === "coupon") {
         discount = Math.round(session.price * 0.20);
 
     } 
-    else if (text === "4") {
+  else if (text === "4") {
 
-        if (isCropTop) {
-            discount = Math.round(session.price * 0.20);
-        } else {
-            await sendWhatsApp(phone,
-`❌ This coupon is only valid for Crop Tops
+    if (isCropTop) {
+        discount = Math.round(session.price * 0.20);
+    } else {
+        await sendWhatsApp(phone,
+`❌ Only for Crop Tops`);
+        return;
+    }
 
-👉 Try another option`);
-            return;
-        }
-
-    } 
+}
     else if (text === "5" || text === "SKIP") {
 
         session.step = "address";
@@ -483,16 +481,29 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 
 💰 Price: ₹${session.price}
 
-📦 Enter name & city:
-Rahul - Jaipur`
+📦 Enter name & city`
         );
         return;
     } 
+    else if (text === "6" || text === "BACK") {
+
+        session.step = null;
+
+        await sendWhatsApp(phone,
+`🔙 Back
+
+👉 Choose:
+1️⃣ Website  
+2️⃣ Pay Now  
+3️⃣ COD`
+        );
+        return;
+    }
     else {
 
         await sendWhatsApp(phone,
 `❌ Invalid option  
-Reply 1 / 2 / 3 / 4 / 5`
+Reply 1 / 2 / 3 / 4 / 5 / 6`
         );
         return;
     }
@@ -509,14 +520,9 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 💸 Discount: ₹${discount}
 💰 Final Price: ₹${session.price}
 
-📦 Enter name & city:
-Rahul - Jaipur`
+📦 Enter name & city`
     );
 }
-        return;
-
-    } 
-    else {
 
 /* ✅ ADDRESS + PAYMENT */
 else if (session.step === "address" && session.payment) {
