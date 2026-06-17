@@ -303,7 +303,11 @@ app.post("/webhook", async (req, res) => {
           const product = {
     id: item.product_retailer_id,
     price: item.item_price,
-    name: metaData.name || nameMap[item.product_retailer_id] || "",
+    name:
+    (metaData.name && metaData.name.trim() !== "")
+        ? metaData.name
+        : nameMap[item.product_retailer_id] || "Product",
+``
     size: sizeMap[item.product_retailer_id] || null,
     link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
 };
