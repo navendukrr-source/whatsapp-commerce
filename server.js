@@ -317,9 +317,10 @@ const product = {
     id: item.product_retailer_id,
     price: item.item_price,
     name:
-        metaData.name ||
-        nameMap[item.product_retailer_id] ||
-        `Product ${item.product_retailer_id}`,
+    metaData.name ||
+    nameMap[item.product_retailer_id] ||
+    "Product",
+``
 
     size:
         sizeMap[item.product_retailer_id] ||   // ✅ USE sizeMap FIRST
