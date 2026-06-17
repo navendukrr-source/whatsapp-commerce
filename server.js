@@ -579,7 +579,9 @@ res.sendStatus(200);
 } catch (err) {
     console.error(err);
     res.sendStatus(500);
+}
 });
+``
 
 /* ✅ START SERVER */
 app.listen(process.env.PORT, () => {
