@@ -295,10 +295,6 @@ app.post("/webhook", async (req, res) => {
             }
         } catch {}
 
-        // ✅ IMPORTANT: PUT ALL YOUR EXISTING CODE BELOW THIS LINE
-        // (product, options, coupon, address etc.)
-
-
         /* ✅ PRODUCT RECEIVED */
         if (data.message_type === "order" && messageText?.order) {
 
@@ -570,14 +566,13 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 
     }
 
-delete userSession[phone];
+    delete userSession[phone];
+}
 
-/* ✅ SEND RESPONSE */
-res.sendStatus(200);
-
-    } catch (err) {
-        console.error(err);
-        res.sendStatus(500);
-    }
+/* ✅ START */
+app.listen(process.env.PORT, () => {
+    console.log("Server running...");
 });
-``
+
+
+updated current
