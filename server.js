@@ -183,8 +183,11 @@ const productCache = {};
 
 async function loadMetaProducts() {
     try {
-        const res = await fetch(`https://facebook.com{process.env.CATALOG_ID}/products?fields=name,variants{retailer_id,variant_values}&access_token=${process.env.META_TOKEN}`);
-        const data = await res.json();
+        
+const res = await fetch(
+`https://graph.facebook.com/v19.0/${process.env.CATALOG_ID}/products?fields=name,variants{retailer_id,variant_values}&limit=100&access_token=${process.env.META_TOKEN}`
+);
+ const data = await res.json();
         if (!data.data) return;
         data.data.forEach(p => {
             if (!p.variants?.data) return;
@@ -250,7 +253,10 @@ app.post("/webhook", async (req, res) => {
             
             // Check every variation of the product name key that WhatsApp populates in a catalog message webhook
             const nativeWhatsAppName = item.product_name || item.title || item.name || "Yavastrah Premium Apparel";
-            const finalName = meta.name || nameMap[retailerId] || nativeWhatsAppName;
+            const finalName =
+    (meta.name && meta.name.trim() !== "")
+        ? meta.name
+        : (nameMap[retailerId] || nativeWhatsAppName);
 
             userSession[phone] = {
                 id: retailerId, 
