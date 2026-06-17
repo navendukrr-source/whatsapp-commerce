@@ -14,10 +14,10 @@ const razorpay = new Razorpay({
 });
 
 /* ✅ FALLBACK MAPS */
+/* ✅ FALLBACK MAPS */
 const nameMap = {
-    "42147387015271": "Off-White Floral Print Cotton Shirt"
+    "42147386949735": "Off-White Floral Print Cotton Shirt"
 };
-
 
 const linkMap = {
     "42147386949735": "https://yavastrah.com/products/off-white-floral-print-cotton-shirt"
@@ -25,6 +25,7 @@ const linkMap = {
 
 /* ✅ SIZE MAP (FROM YOUR CATALOG) */
 const sizeMap = {
+
     // ✅ Men's Purple Kurta with Abstract Print
     "42164560199783": "M",
     "42208950976615": "S",
@@ -187,7 +188,9 @@ const sizeMap = {
     "42210910765159": "M",
     "42210910797927": "L",
     "42210910830695": "XL",
+
 };
+
 
 /* ✅ META CACHE */
 const productCache = {};
