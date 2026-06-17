@@ -302,13 +302,14 @@ app.post("/webhook", async (req, res) => {
 
             const metaData = productCache[item.product_retailer_id] || {};
 
-          const product = {
+           const product = {
     id: item.product_retailer_id,
     price: item.item_price,
     name: metaData.name || nameMap[item.product_retailer_id] || "",
     size: sizeMap[item.product_retailer_id] || null,
     link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
 };
+``
             userSession[phone] = product;
 
             const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
@@ -346,43 +347,21 @@ app.post("/webhook", async (req, res) => {
             text = (text || "").toUpperCase().trim();
 
             console.log("User text:", text);
-              // ✅ GLOBAL MENU RESET
-if (text === "MENU" || text === "HOME") {
-
-    delete userSession[phone];
-
-    await sendWhatsApp(phone,
-`🏠 Back to start
-
-👉 Please select product again`
-    );
-
-    return;
-}
 
             const session = userSession[phone];
             if (!session) return res.sendStatus(200);
 
-          if (["1","2","3"].includes(text)) {
-    session.step = null;
-
-    // ✅ ADD THIS LINE (this is the real fix)
-    if (session.originalPrice) {
-        session.price = session.originalPrice;
-    }
-}
             /* ✅ OPTIONS */
 
 if (text === "1") {
 
-   await sendWhatsApp(phone,
+    await sendWhatsApp(phone,
 `🛍️ ${session.name}
 ${session.size ? `📏 Size: ${session.size}` : ""}
-💰 Price: ₹${session.price}
 
 🛒 Continue here:
 ${session.link}`
-);
+    );
 
     delete userSession[phone];
 
@@ -392,11 +371,6 @@ else if (text === "2") {
     session.step = "coupon";
     session.payment = "online";
 
-    // ✅ SAVE ORIGINAL PRICE (IMPORTANT)
-    if (!session.originalPrice) {
-        session.originalPrice = session.price;
-    }
-
     await sendWhatsApp(phone,
 `🛍️ ${session.name}
 ${session.size ? `📏 Size: ${session.size}` : ""}
@@ -404,50 +378,45 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 
 💥 Available Offers:
 
-1️⃣ YAVASTRAH25 (Except Crop Tops)
+1️⃣ YAVASTRAH25 - First purchase Offer
+✅ 25% OFF  
 
 2️⃣ YVSTRAH15  
-${session.price >= 1199 
-    ? "✅ Available" 
-    : `🔒 Add ₹${1199 - session.price} more`}  
+${session.price >= 1199 ? "✅ Available" : "🔒 Min ₹1199"}  
 
 3️⃣ YVSTRAH20  
-${session.price >= 1899 
-    ? "✅ Available" 
-    : `🔒 Add ₹${1899 - session.price} more`}  
+${session.price >= 1899 ? "✅ Available" : "🔒 Min ₹1899"}  
 
-4️⃣ CROPTOP20  
-${session.name.toLowerCase().includes("crop top") 
-    ? "✅ Applicable" 
-    : "❌ Only for crop tops"}
+4️⃣ Skip
 
-5️⃣ Skip  
-6️⃣ Back
-
-👉 Reply 1 / 2 / 3 / 4 / 5 / 6`
+👉 Reply 1 / 2 / 3 / 4`
     );
-}
+
+} 
+else if (text === "3") {
+
+    session.step = "address";
+    session.payment = "cod";
+
+    await sendWhatsApp(phone,
+`🛍️ ${session.name}
+${session.size ? `📏 Size: ${session.size}` : ""}
+
+📦 Enter name & city:
+
+Rahul - Jaipur`
+    );
+
+} 
 
 /* ✅ COUPON LOGIC */
 else if (session.step === "coupon") {
-
-    const isCropTop =
-        session.name.toLowerCase().includes("crop top");
-
-    // ✅ RESET PRICE BEFORE APPLYING NEW COUPON
-    session.price = session.originalPrice;
 
     let discount = 0;
 
     if (text === "1") {
 
-        if (!isCropTop) {
-            discount = Math.round(session.price * 0.25);
-        } else {
-            await sendWhatsApp(phone,
-`❌ Not valid on Crop Tops`);
-            return;
-        }
+        discount = Math.round(session.price * 0.25);
 
     } 
     else if (text === "2" && session.price >= 1199) {
@@ -460,18 +429,7 @@ else if (session.step === "coupon") {
         discount = Math.round(session.price * 0.20);
 
     } 
-  else if (text === "4") {
-
-    if (isCropTop) {
-        discount = Math.round(session.price * 0.20);
-    } else {
-        await sendWhatsApp(phone,
-`❌ Only for Crop Tops`);
-        return;
-    }
-
-}
-    else if (text === "5" || text === "SKIP") {
+    else if (text === "4" || text === "SKIP") {
 
         session.step = "address";
 
@@ -481,30 +439,19 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 
 💰 Price: ₹${session.price}
 
-📦 Enter name & city`
+📦 Enter name & city:
+Rahul - Jaipur`
         );
-        return;
-    } 
-    else if (text === "6" || text === "BACK") {
 
-        session.step = null;
+        return;
+
+    } else {
 
         await sendWhatsApp(phone,
-`🔙 Back
-
-👉 Choose:
-1️⃣ Website  
-2️⃣ Pay Now  
-3️⃣ COD`
+`❌ Invalid or not eligible  
+Reply 1 / 2 / 3 / 4`
         );
-        return;
-    }
-    else {
 
-        await sendWhatsApp(phone,
-`❌ Invalid option  
-Reply 1 / 2 / 3 / 4 / 5 / 6`
-        );
         return;
     }
 
@@ -520,7 +467,8 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 💸 Discount: ₹${discount}
 💰 Final Price: ₹${session.price}
 
-📦 Enter name & city`
+📦 Enter name & city:
+Rahul - Jaipur`
     );
 }
 
@@ -543,11 +491,8 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 💰 Amount: ₹${session.price}
 
 💳 Pay here:
-${link}
-
-✅ You will receive confirmation after payment`
-);
-
+${link}`
+        );
 
     } else {
 
@@ -573,6 +518,3 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 app.listen(process.env.PORT, () => {
     console.log("Server running...");
 });
-
-
-updated current
