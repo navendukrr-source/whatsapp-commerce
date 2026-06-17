@@ -333,11 +333,14 @@ const product = {
 `${nameText}${product.size ? `📏 Size: ${product.size}\n` : ""}
 💰 Price: ₹${product.price}
 
-👉 Choose:
+👉 How would you like to proceed?
 
-1️⃣ Website  
-2️⃣ Pay Now  
-3️⃣ COD`
+1️⃣ View on Website (Fastest)
+2️⃣ Pay Now (Razorpay-Secure 🔒)  
+3️⃣ Cash on Delivery (COD)
+
+💬 Reply with *1*, *2* or *3* to continue
+
             );
 
         } else {
@@ -385,7 +388,7 @@ ${session.link}`
                 await sendWhatsApp(phone,
 `📦 Enter name & city:
 
-Rahul - Jaipur`
+For Example : Rahul - Jaipur`
                 );
 
             } else if (text === "3") {
