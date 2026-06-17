@@ -441,7 +441,6 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 
 delete userSession[phone];
             }
-        }
 
         res.sendStatus(200);
 
