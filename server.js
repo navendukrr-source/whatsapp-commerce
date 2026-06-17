@@ -289,17 +289,15 @@ app.post("/webhook", async (req, res) => {
 
         let messageText = null;
 
-        // ✅ INNER TRY → ONLY PARSING
         try {
             if (data.message_text && data.message_text.startsWith("{")) {
                 messageText = JSON.parse(data.message_text);
             }
         } catch {}
 
-        // ✅ YOUR OTHER LOGIC WILL GO HERE
+        // ✅ IMPORTANT: PUT ALL YOUR EXISTING CODE BELOW THIS LINE
         // (product, options, coupon, address etc.)
 
-        // ✅ ALWAYS KEEP THIS AT END
         res.sendStatus(200);
 
     } catch (err) {
