@@ -289,12 +289,24 @@ app.post("/webhook", async (req, res) => {
 
         let messageText = null;
 
+        // ✅ INNER TRY → ONLY PARSING
         try {
             if (data.message_text && data.message_text.startsWith("{")) {
                 messageText = JSON.parse(data.message_text);
             }
         } catch {}
 
+        // ✅ YOUR OTHER LOGIC WILL GO HERE
+        // (product, options, coupon, address etc.)
+
+        // ✅ ALWAYS KEEP THIS AT END
+        res.sendStatus(200);
+
+    } catch (err) {
+        console.error(err);
+        res.sendStatus(500);
+    }
+});
         /* ✅ PRODUCT RECEIVED */
         if (data.message_type === "order" && messageText?.order) {
 
@@ -568,15 +580,6 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 
  delete userSession[phone];
 }
-
-/* ✅ SEND RESPONSE */
-res.sendStatus(200);
-
-} catch (err) {
-    console.error(err);
-    res.sendStatus(500);
-}
-});
 
 /* ✅ START SERVER */
 app.listen(process.env.PORT, () => {
