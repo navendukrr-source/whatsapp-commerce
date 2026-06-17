@@ -278,67 +278,47 @@ app.post("/webhook", async (req, res) => {
     try {
         const data = req.body;
 
-        // Immediately respond 200 if it's an empty event
         if (!data.message_text && !data.text) {
             return res.sendStatus(200);
         }
 
         const phone = data.wa_id;
-        let messageText = data.message_text;
+        let messageText = null;
 
-        // Safely parse JSON if it comes in stringified format
-        let parsedJSON = null;
         try {
-            if (typeof messageText === "string" && messageText.trim().startsWith("{")) {
-                parsedJSON = JSON.parse(messageText);
+            if (data.message_text && data.message_text.startsWith("{")) {
+                messageText = JSON.parse(data.message_text);
             }
         } catch (err) {
-            // Ignore parse errors
+            // ignore parse errors
         }
 
-        /* ✅ SCENARIO 1: INCOMING ORDER FROM WHATSAPP CATALOG */
-        const isOrder = data.message_type === "order" || parsedJSON?.order || data.order;
+         /* ✅ PRODUCT RECEIVED */
+        if (data.message_type === "order" && messageText?.order) {
 
-        if (isOrder) {
-            const orderPayload = parsedJSON?.order || data.order || {};
-            const productItems = orderPayload.product_items || [];
-            
-            // Fixed: Secure alternative if product arrays are completely blank or unpopulated
-            if (!productItems || productItems.length === 0) {
-                return res.sendStatus(200);
-            }
+            const item = messageText.order.product_items[0];
 
-            const item = productItems[0]; // Safely grab the first cart item element
-            
-            const variantId = String(item.product_retailer_id || "").trim();
-            const metaData = productCache[variantId] || {};
+            const metaData = productCache[item.product_retailer_id] || {};
 
-            // Extract item.product_name from WhatsApp's native payload if maps are blank
-            const fallbackName = item.product_name || item.name || "Off-White Floral Print Cotton Shirt";
-            const productName = metaData.name || nameMap[variantId] || fallbackName;
-
-            // Size fallback resolution
-            const productSize = sizeMap[variantId] || metaData.size || "M";
+            // FIX: Grab the native title from item.product_name if both Meta and fallback map are blank
+            const nativeCatalogName = item.product_name || item.name || "Product";
+            const dynamicName = metaData.name || nameMap[item.product_retailer_id] || nativeCatalogName;
 
             const product = {
-                id: variantId,
-                price: item.item_price || 849.50,
-                name: productName,
-                size: productSize,
-                link: linkMap[variantId] || "https://yavastrah.com",
-                step: "action_selection",
-                payment: null
+                id: item.product_retailer_id,
+                price: item.item_price,
+                name: dynamicName,
+                size: sizeMap[item.product_retailer_id] || null,
+                link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
             };
-
-            // Store cleanly in user active session memory space
             userSession[phone] = product;
 
-            // Structure clean message layouts 
-            const nameHeader = product.name ? `🛍️ *${product.name}*\n\n` : "🛍️ *Off-White Floral Print Cotton Shirt*\n\n";
-            const sizeString = product.size ? `📏 Size: ${product.size}\n` : "";
+            const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
 
             await sendWhatsApp(phone,
-`${nameHeader}${sizeString}💰 Price: ₹${product.price}
+`${nameText}${product.size ? `📏 Size: ${product.size}\n` : ""}
+💰 Price: ₹${product.price}
+
 
 👉 How would you like to proceed?
 
@@ -346,107 +326,108 @@ app.post("/webhook", async (req, res) => {
 2️⃣ Pay Now (Razorpay-Secure 🔒)  
 3️⃣ Cash on Delivery (COD)
 
-💬 Reply with *1*, *2* or *3*`
+💬 Reply with *1, 2 or 3*`
             );
 
-            return res.sendStatus(200);
-        }
+        } else {
+            /* ✅ USER INPUT */
+            let text = "";
 
-        /* ✅ SCENARIO 2: TEXT MESSAGE INPUT INTERCEPTOR (OPTIONS / ADDRESS) */
-        let text = "";
-        if (parsedJSON && parsedJSON.text) {
-            text = parsedJSON.text;
-        } else if (typeof messageText === "string") {
-            text = messageText;
-        } else if (data.text) {
-            text = data.text;
-        }
+            try {
+                if (data.message_text && data.message_text.startsWith("{")) {
+                    const parsed = JSON.parse(data.message_text);
+                    text = parsed.text || "";
+                } else if (typeof data.message_text === "string") {
+                    text = data.message_text;
+                }
+            } catch (err) {
+                // ignore parse errors
+            }
 
-        // Clean up inputs to isolate raw characters
-        text = String(text || "").trim();
-        console.log("Normalized User Text Input:", text);
+            if (!text) {
+                text = data.text || "";
+            }
+            text = (text || "").trim();
 
-        const session = userSession[phone];
-        
-        // If there's no open product session, don't execute actions
-        if (!session) {
-            return res.sendStatus(200);
-        }
+            console.log("User text:", text);
 
-        // Action routing logic
-        if (text === "1" || text.includes("1")) {
-            await sendWhatsApp(phone,
+            const session = userSession[phone];
+            if (!session) return res.sendStatus(200);
+
+            /* ✅ OPTIONS */
+            if (text.includes("1")) {
+
+                await sendWhatsApp(phone,
 `🛍️ ${session.name}
-${session.size ? `📏 Size: ${session.size}\n` : ""}💰 Price: ₹${session.price}
+${session.size ? `📏 Size: ${session.size}\n` : ""}
+💰 Price: ₹${session.price}
 
-🛒 Buy directly here:
+🛒 Buy here:
 ${session.link}`
-            );
-            delete userSession[phone]; // Clear memory session
+                );
 
-        } else if (text === "2") {
-            session.step = "address";
-            session.payment = "online";
-            await sendWhatsApp(phone,
-`📦 *Payment Option: Razorpay Online*
+                delete userSession[phone];
 
-Please reply with your delivery Name & City to generate the checkout link.
-_Example: Rahul - Jaipur_`
-            );
+            } else if (text === "2") {
+                session.step = "address";
+                session.payment = "online";
+                await sendWhatsApp(phone,
+`📦 Enter name & city:
 
-        } else if (text === "3" || text.includes("3")) {
-            session.step = "address";
-            session.payment = "cod";
-            await sendWhatsApp(phone,
-`📦 *Payment Option: Cash on Delivery (COD)*
+For Example : Rahul - Jaipur`
+                );
 
-Please reply with your delivery Name & City to confirm your order.
-_Example: Rahul - Jaipur_`
-            );
+            } else if (text === "3" || text.includes("3")) {
+                session.step = "address";
+                session.payment = "cod";
+                await sendWhatsApp(phone,
+`📦 Enter name & city:
 
-        } else if (session.step === "address") {
-            // Save shipping payload text string values into basic info parameters
-            session.basic_info = text;
+Rahul - Jaipur`
+                );
 
-            if (session.payment === "online") {
-                await sendWhatsApp(phone, "🔄 Generating your secure automated Razorpay payment link...");
-                
-                try {
-                    const link = await createPaymentLink(session.price, phone, session);
+            } else if (session.step === "address") {
+                session.basic_info = text; // Fixed: Read normalized string variable instead of data.message_text directly
+
+                if (session.payment === "online") {
+                    const link = await createPaymentLink(
+                        session.price,
+                        phone,
+                        session
+                    );
 
                     await sendWhatsApp(phone,
 `🛍️ ${session.name}
-${session.size ? `📏 Size: ${session.size}\n` : ""}💰 Amount: ₹${session.price}
+${session.size ? `📏 Size: ${session.size}` : ""}
+💰 Amount: ₹${session.price}
 
-💳 Pay securely here:
+💳 Pay here:
 ${link}
 
-✅ You will receive confirmation after payment completes via SMS/WhatsApp.`
+✅ You will receive confirmation after payment via SMS/WhatsApp`
                     );
-                } catch (payError) {
-                    console.error("Razorpay generation failed:", payError);
-                    await sendWhatsApp(phone, "❌ Unable to build payment link right now. Please choose Option 3 for Cash on Delivery.");
-                }
 
-            } else if (session.payment === "cod") {
-                await sendWhatsApp(phone,
-`✅ *Order Confirmed via COD!*
+                } else {
+                    await sendWhatsApp(phone,
+`✅ Order Confirmed!
 
 🛍️ ${session.name}
-${session.size ? `📏 Size: ${session.size}\n` : ""}💰 Payable: ₹${session.price}
-📍 Delivery Details: ${session.basic_info}
+${session.size ? `📏 Size: ${session.size}` : ""}
+💰 ₹${session.price}
 
-📞 Our team will contact you shortly via call/SMS to verify your dispatch information.`
-                );
-                
-                delete userSession[phone]; // Wipe memory footprint clean
+📍 ${session.basic_info}
+
+📞 You will receive confirmation via call/SMS shortly`
+                    );
+                    delete userSession[phone];
+                }
             }
         }
 
-        return res.sendStatus(200);
+        res.sendStatus(200);
 
     } catch (err) {
-        console.error("💥 Global Webhook Crash Trace Log:", err);
-        return res.sendStatus(500);
+        console.error(err);
+        res.sendStatus(500);
     }
 });
