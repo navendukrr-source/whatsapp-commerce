@@ -304,7 +304,6 @@ app.post("/webhook", async (req, res) => {
         console.error(err);
         res.sendStatus(500);
     }
-});
         /* ✅ PRODUCT RECEIVED */
         if (data.message_type === "order" && messageText?.order) {
 
