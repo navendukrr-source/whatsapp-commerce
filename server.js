@@ -581,7 +581,6 @@ res.sendStatus(200);
     res.sendStatus(500);
 }
 });
-``
 
 /* ✅ START SERVER */
 app.listen(process.env.PORT, () => {
