@@ -15,8 +15,9 @@ const razorpay = new Razorpay({
 
 /* ✅ FALLBACK MAPS */
 const nameMap = {
-    "42147386949735": "Off-White Floral Print Cotton Shirt"
+    "42147387015271": "Off-White Floral Print Cotton Shirt"
 };
+``
 
 const linkMap = {
     "42147386949735": "https://yavastrah.com/products/off-white-floral-print-cotton-shirt"
@@ -259,20 +260,23 @@ async function createPaymentLink(amount, phone, product) {
         amount: amount * 100,
         currency: "INR",
 
-        description: `${product.name}${product.size ? ` | ${product.size}` : ""}`,
+        description: `${product.name}`, // keep simple
 
-        customer: { contact: phone },
+        customer: {
+            contact: phone
+        },
 
-       notes: {
-   product_name: product.name,
-   size: product.size,
-   price: product.price
-}
-
+        notes: {
+            Product: product.name,
+            Size: product.size || "N/A",
+            Price: `₹${product.price}`,
+            Address: product.basic_info || "-"
+        }
     });
 
     return link.short_url;
 }
+
 
 /* ✅ SESSION */
 const userSession = {};
@@ -307,7 +311,8 @@ app.post("/webhook", async (req, res) => {
             const productName =
     metaData.name ||
     nameMap[item.product_retailer_id] ||
-    `Product ID: ${item.product_retailer_id}`;
+    "Product";
+``
 
 const product = {
     id: item.product_retailer_id,
@@ -415,23 +420,32 @@ Rahul - Jaipur`
                         session
                     );
 
-                    await sendWhatsApp(phone,
-`💳 Pay:
-${link}`
-                    );
+                   await sendWhatsApp(phone,
+`🛍️ ${session.name}
+${session.size ? `📏 Size: ${session.size}` : ""}
+💰 Amount: ₹${session.price}
+
+💳 Pay here:
+${link}
+
+✅ You will receive confirmation after payment via SMS/WhatsApp`
+);
+``
 
                 } else {
 
                     await sendWhatsApp(phone,
 `✅ Order Confirmed!
 
-📏 ${session.size || ""}
+🛍️ ${session.name}
+${session.size ? `📏 Size: ${session.size}` : ""}
+💰 ₹${session.price}
+
 📍 ${session.basic_info}
 
-We will contact you ✅`
-                    );
-                }
-
+📞 You will receive confirmation via call/SMS shortly`
+);
+``
                 delete userSession[phone];
             }
         }
