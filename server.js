@@ -312,12 +312,6 @@ app.post("/webhook", async (req, res) => {
 nameMap[item.product_retailer_id] ||
 "Product";
 
-
-const productName =
-    metaData.name ||
-    nameMap[item.product_retailer_id] ||
-    "Product";
-
 const product = {
     id: item.product_retailer_id,
     price: item.item_price,
