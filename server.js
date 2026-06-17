@@ -278,47 +278,62 @@ app.post("/webhook", async (req, res) => {
     try {
         const data = req.body;
 
+        // Immediately respond 200 if it's an empty event
         if (!data.message_text && !data.text) {
             return res.sendStatus(200);
         }
 
         const phone = data.wa_id;
-        let messageText = null;
+        let messageText = data.message_text;
 
+        // Safely parse JSON if it comes in stringified format
+        let parsedJSON = null;
         try {
-            if (data.message_text && data.message_text.startsWith("{")) {
-                messageText = JSON.parse(data.message_text);
+            if (typeof messageText === "string" && messageText.trim().startsWith("{")) {
+                parsedJSON = JSON.parse(messageText);
             }
         } catch (err) {
-            // ignore parse errors
+            // Ignore parse errors
         }
 
-         /* ✅ PRODUCT RECEIVED */
-        if (data.message_type === "order" && messageText?.order) {
+        /* ✅ SCENARIO 1: INCOMING ORDER FROM WHATSAPP CATALOG */
+        // Explicitly inspect multiple payload variations to detect cart drop events
+        const isOrder = data.message_type === "order" || parsedJSON?.order || data.order;
 
-            const item = messageText.order.product_items[0];
+        if (isOrder) {
+            const orderPayload = parsedJSON?.order || data.order || {};
+            const productItems = orderPayload.product_items || [];
+            const item = productItems[0] || {};
+            
+            const variantId = String(item.product_retailer_id || "").trim();
+            const metaData = productCache[variantId] || {};
 
-            const metaData = productCache[item.product_retailer_id] || {};
+            // CRITICAL FIX: Extract item.product_name from WhatsApp's native payload if maps are blank
+            const fallbackName = item.product_name || item.name || "Off-White Floral Print Cotton Shirt";
+            const productName = metaData.name || nameMap[variantId] || fallbackName;
 
-          const product = {
-    id: item.product_retailer_id,
-    price: item.item_price,
-    name:
-    (metaData.name && metaData.name.trim() !== "")
-        ? metaData.name
-        : nameMap[item.product_retailer_id] || "Product",
-``
-    size: sizeMap[item.product_retailer_id] || null,
-    link: linkMap[item.product_retailer_id] || "https://yavastrah.com"
-};
+            // Size fallback resolution
+            const productSize = sizeMap[variantId] || metaData.size || "M";
+
+            const product = {
+                id: variantId,
+                price: item.item_price || 849.50,
+                name: productName,
+                size: productSize,
+                link: linkMap[variantId] || "https://yavastrah.com",
+                step: "action_selection",
+                payment: null
+            };
+
+            // Store cleanly in user active session memory space
             userSession[phone] = product;
 
-            const nameText = product.name ? `🛍️ *${product.name}*\n\n` : "";
+            // Structure clean message layouts 
+            const nameHeader = product.name ? `🛍️ *${product.name}*\n\n` : "🛍️ *Off-White Floral Print Cotton Shirt*\n\n";
+            const sizeString = product.size ? `📏 Size: ${product.size}\n` : "";
 
             await sendWhatsApp(phone,
-`${nameText}${product.size ? `📏 Size: ${product.size}\n` : ""}
-💰 Price: ₹${product.price}
-
+`${nameHeader}${sizeString}💰 Price: ₹${product.price}
 
 👉 How would you like to proceed?
 
@@ -326,113 +341,107 @@ app.post("/webhook", async (req, res) => {
 2️⃣ Pay Now (Razorpay-Secure 🔒)  
 3️⃣ Cash on Delivery (COD)
 
-💬 Reply with *1, 2 or 3*`
+💬 Reply with *1*, *2* or *3*`
             );
 
-        } else {
-            /* ✅ USER INPUT */
-            let text = "";
+            return res.sendStatus(200);
+        }
 
-            try {
-                if (data.message_text && data.message_text.startsWith("{")) {
-                    const parsed = JSON.parse(data.message_text);
-                    text = parsed.text || "";
-                } else if (typeof data.message_text === "string") {
-                    text = data.message_text;
-                }
-            } catch (err) {
-                // ignore parse errors
-            }
+        /* ✅ SCENARIO 2: TEXT MESSAGE INPUT INTERCEPTOR (OPTIONS / ADDRESS) */
+        let text = "";
+        if (parsedJSON && parsedJSON.text) {
+            text = parsedJSON.text;
+        } else if (typeof messageText === "string") {
+            text = messageText;
+        } else if (data.text) {
+            text = data.text;
+        }
 
-            if (!text) {
-                text = data.text || "";
-            }
-            text = (text || "").trim();
+        // Clean up inputs to isolate raw characters
+        text = String(text || "").trim();
+        console.log("Normalized User Text Input:", text);
 
-            console.log("User text:", text);
+        const session = userSession[phone];
+        
+        // If there's no open product session, don't execute actions
+        if (!session) {
+            return res.sendStatus(200);
+        }
 
-            const session = userSession[phone];
-            if (!session) return res.sendStatus(200);
-
-            /* ✅ OPTIONS */
-            if (text.includes("1")) {
-
-    await sendWhatsApp(phone,
+        // Action routing logic
+        if (text === "1" || text.includes("1")) {
+            await sendWhatsApp(phone,
 `🛍️ ${session.name}
-${session.size ? `📏 Size: ${session.size}\n` : ""}
-💰 Price: ₹${session.price}
+${session.size ? `📏 Size: ${session.size}\n` : ""}💰 Price: ₹${session.price}
 
-🛒 Buy here:
+🛒 Buy directly here:
 ${session.link}`
-    );
+            );
+            delete userSession[phone]; // Clear memory session
 
-    delete userSession[phone];
+        } else if (text === "2") {
+            session.step = "address";
+            session.payment = "online";
+            await sendWhatsApp(phone,
+`📦 *Payment Option: Razorpay Online*
 
-            } else if (text === "2") {
-                session.step = "address";
-                session.payment = "online";
-                await sendWhatsApp(phone,
-`📦 Enter name & city:
+Please reply with your delivery Name & City to generate the checkout link.
+_Example: Rahul - Jaipur_`
+            );
 
-For Example : Rahul - Jaipur`
-                );
+        } else if (text === "3" || text.includes("3")) {
+            session.step = "address";
+            session.payment = "cod";
+            await sendWhatsApp(phone,
+`📦 *Payment Option: Cash on Delivery (COD)*
 
-            } else if (text === "3" || text.includes("3")) {
-                session.step = "address";
-                session.payment = "cod";
-                await sendWhatsApp(phone,
-`📦 Enter name & city:
+Please reply with your delivery Name & City to confirm your order.
+_Example: Rahul - Jaipur_`
+            );
 
-Rahul - Jaipur`
-                );
+        } else if (session.step === "address") {
+            // Save shipping payload text string values into basic info parameters
+            session.basic_info = text;
 
-            } else if (session.step === "address") {
-                session.basic_info = data.message_text;
-
-                if (session.payment === "online") {
-                    const link = await createPaymentLink(
-                        session.price,
-                        phone,
-                        session
-                    );
+            if (session.payment === "online") {
+                await sendWhatsApp(phone, "🔄 Generating your secure automated Razorpay payment link...");
+                
+                try {
+                    const link = await createPaymentLink(session.price, phone, session);
 
                     await sendWhatsApp(phone,
 `🛍️ ${session.name}
-${session.size ? `📏 Size: ${session.size}` : ""}
-💰 Amount: ₹${session.price}
+${session.size ? `📏 Size: ${session.size}\n` : ""}💰 Amount: ₹${session.price}
 
-💳 Pay here:
+💳 Pay securely here:
 ${link}
 
-✅ You will receive confirmation after payment via SMS/WhatsApp`
+✅ You will receive confirmation after payment completes via SMS/WhatsApp.`
                     );
+                } catch (payError) {
+                    console.error("Razorpay generation failed:", payError);
+                    await sendWhatsApp(phone, "❌ Unable to build payment link right now. Please choose Option 3 for Cash on Delivery.");
+                }
 
-                } else {
-                    await sendWhatsApp(phone,
-`✅ Order Confirmed!
+            } else if (session.payment === "cod") {
+                await sendWhatsApp(phone,
+`✅ *Order Confirmed via COD!*
 
 🛍️ ${session.name}
-${session.size ? `📏 Size: ${session.size}` : ""}
-💰 ₹${session.price}
+${session.size ? `📏 Size: ${session.size}\n` : ""}💰 Payable: ₹${session.price}
+📍 Delivery Details: ${session.basic_info}
 
-📍 ${session.basic_info}
-
-📞 You will receive confirmation via call/SMS shortly`
-                    );
-                    delete userSession[phone];
-                }
+📞 Our team will contact you shortly via call/SMS to verify your dispatch information.`
+                );
+                
+                delete userSession[phone]; // Wipe memory footprint clean
             }
         }
 
-        res.sendStatus(200);
+        return res.sendStatus(200);
 
     } catch (err) {
-        console.error(err);
-        res.sendStatus(500);
+        console.error("💥 Global Webhook Crash Trace Log:", err);
+        return res.sendStatus(500);
     }
-});
-
-/* ✅ START */
-app.listen(process.env.PORT, () => {
-    console.log("Server running...");
 });
