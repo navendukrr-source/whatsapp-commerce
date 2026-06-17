@@ -365,7 +365,6 @@ ${session.link}`
     );
 
     delete userSession[phone];
-}
 
             } else if (text === "2") {
                 session.step = "address";
