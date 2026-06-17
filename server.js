@@ -265,11 +265,12 @@ app.post("/webhook", async (req, res) => {
             const meta = productCache[retailerId] || {};
             
             // Check every variation of the product name key that WhatsApp populates in a catalog message webhook
-            const nativeWhatsAppName = item.product_name || item.title || item.name || "Yavastrah Premium Apparel";
             const finalName =
-    (meta.name && meta.name.trim() !== "")
-        ? meta.name
-        : (nameMap[retailerId] || nativeWhatsAppName);
+    item.product_name ||
+    item.name ||
+    item.title ||
+    nameMap[retailerId] ||
+    `Product ${retailerId}`;
 
             userSession[phone] = {
     id: retailerId,
