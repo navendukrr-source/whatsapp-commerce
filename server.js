@@ -269,7 +269,7 @@ app.post("/webhook", async (req, res) => {
                 session.basic_info = text;
                 if (session.payment === "online") {
                     const link = await createPaymentLink(session.price, phone, session);
-                    await sendWhatsApp(phone, `🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 Amount: ₹${session.price}\n\n💳 Pay here:\n${link}\n\n✅ Secure Checkout generated successfully.`);
+                    await sendWhatsApp(phone, `🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 Amount: ₹${session.price}\n\n💳 Pay here:\n${link}\n\n✅ Secure Checkout generated successfully, 📞 You will receive all communication shortly post payment confirmation.`);
                 } else {
                     await sendWhatsApp(phone, `✅ Order Confirmed!\n\n🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 ₹${session.price}\n📍 ${session.basic_info}\n\n📞 You will receive confirmation via call shortly`);
                     delete userSession[phone];
