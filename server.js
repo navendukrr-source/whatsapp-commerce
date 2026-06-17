@@ -441,12 +441,14 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 
 delete userSession[phone];
 }
+}   // ✅ THIS IS THE MISSING LINE
+
 res.sendStatus(200);
 
 } catch (err) {
-        console.error(err);
-        res.sendStatus(500);
-    }
+    console.error(err);
+    res.sendStatus(500);
+}
 });
 
 /* ✅ START */
