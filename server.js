@@ -298,7 +298,9 @@ app.post("/webhook", async (req, res) => {
             if (data.message_text && data.message_text.startsWith("{")) {
                 messageText = JSON.parse(data.message_text);
             }
-        } catch {}
+        } catch (err) {
+            
+        }
 
         /* ✅ PRODUCT RECEIVED */
         if (data.message_type === "order" && messageText?.order) {
