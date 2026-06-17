@@ -291,9 +291,9 @@ app.post("/webhook", async (req, res) => {
             const metaData = productCache[item.product_retailer_id] || {};
 
             const productName =
-                metaData.name ||
-                nameMap[item.product_retailer_id] ||
-                "Product";
+    metaData.name ||
+    nameMap[item.product_retailer_id] ||
+    "Unknown Item"; // Clearer than just "Product"
 
             const product = {
                 id: item.product_retailer_id,
