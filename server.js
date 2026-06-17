@@ -104,17 +104,18 @@ app.post("/webhook", async (req, res) => {
             if (data.message_text && data.message_text.startsWith("{")) msgObj = JSON.parse(data.message_text);
         } catch (e) {}
 
-                /* ✅ PRODUCT RECEIVED */
+                        /* ✅ PRODUCT RECEIVED */
         if (data.message_type === "order" && msgObj?.order) {
             const productItemsArray = msgObj.order.product_items;
             if (!productItemsArray || productItemsArray.length === 0) return res.sendStatus(200);
 
+            // FIX: Grab the individual item object out of the array container explicitly
             const item = productItemsArray[0]; 
             const retailerId = String(item.product_retailer_id || "").trim();
             const meta = productCache[retailerId] || {};
             
-            // CRITICAL UPGRADE: Exhaustively check all native WhatsApp e-commerce key variations for the product title
-            const nativeWhatsAppName = item.title || item.product_name || item.name || item.product_metadata?.title || "Yavastrah Premium Apparel";
+            // Check every variation of the product name key that WhatsApp populates in a catalog message webhook
+            const nativeWhatsAppName = item.product_name || item.title || item.name || "Yavastrah Premium Apparel";
             const finalName = meta.name || nameMap[retailerId] || nativeWhatsAppName;
 
             userSession[phone] = {
