@@ -571,13 +571,13 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
     }
 
 delete userSession[phone];
-}
 
 /* ✅ SEND RESPONSE */
 res.sendStatus(200);
 
-    } catch (err) {   // ✅ <- NOTICE EXTRA INDENT + POSITION
+    } catch (err) {
         console.error(err);
         res.sendStatus(500);
     }
 });
+``
