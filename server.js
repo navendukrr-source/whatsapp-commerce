@@ -13,6 +13,15 @@ const razorpay = new Razorpay({
 
 /* ✅ FALLBACK MAPS */
 const nameMap = {
+    "42147386949735": "Off-White Floral Print Cotton Shirt"
+};
+
+const linkMap = {
+    "42147386949735": "https://yavastrah.com/products/off-white-floral-print-cotton-shirt"
+};
+
+/* ✅ SIZE MAP (FROM YOUR CATALOG) */
+const sizeMap = {
     // ✅ Men's Purple Kurta with Abstract Print
     "42164560199783": "M",
     "42208950976615": "S",
