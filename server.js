@@ -570,19 +570,14 @@ ${session.size ? `📏 Size: ${session.size}` : ""}
 
     }
 
- delete userSession[phone];
+delete userSession[phone];
 }
 
 /* ✅ SEND RESPONSE */
 res.sendStatus(200);
 
-} catch (err) {
-    console.error(err);
-    res.sendStatus(500);
-}
-});
-
-/* ✅ START SERVER */
-app.listen(process.env.PORT, () => {
-    console.log("Server running...");
+    } catch (err) {   // ✅ <- NOTICE EXTRA INDENT + POSITION
+        console.error(err);
+        res.sendStatus(500);
+    }
 });
