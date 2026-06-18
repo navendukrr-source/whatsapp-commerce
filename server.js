@@ -200,11 +200,34 @@ async function sendWhatsApp(to, message) {
 
 /* ✅ SECURE RAZORPAY PAYMENT LINK ENGINE */
 async function createPaymentLink(amount, phone, product) {
+
+    // ✅ Create product summary
+    let productSummary = "";
+
+    if (product.products.length === 1) {
+        const item = product.products[0];
+        const retailerId = String(item.product_retailer_id || "").trim();
+        const localProduct = catalogDirectory[retailerId];
+
+        productSummary = localProduct?.name || "Product Purchase";
+    } else {
+        productSummary = `${product.products.length} Items Purchase`;
+    }
+
     const paymentData = await razorpay.paymentLink.create({
-        amount: Math.round(amount * 100), currency: "INR", description: `${product.name}`,
+        amount: Math.round(amount * 100),
+        currency: "INR",
+        description: productSummary,   // ✅ FIXED
+
         customer: { contact: phone },
-        notes: { Product: product.name, Size: product.size || "M", Price: `₹${product.price}`, Address: product.basic_info || "-" }
+
+        notes: {
+            Products: productSummary,   // ✅ FIXED
+            Total: `₹${product.total}`, 
+            Address: product.basic_info || "-"
+        }
     });
+
     return paymentData.short_url;
 }
 
