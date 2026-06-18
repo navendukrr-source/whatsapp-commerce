@@ -127,42 +127,49 @@ const catalogDirectory = {
 "42147386949735": { name: "Off-White Floral Print Cotton Shirt", size: "M", link: "yavastrah.com" },
 "42147386982503": { name: "Off-White Floral Print Cotton Shirt", size: "L", link: "yavastrah.com" },
 "42147387015271": { name: "Off-White Floral Print Cotton Shirt", size: "XL", link: "yavastrah.com" },
+    
 // 🛍️ Ivory & Blush Pink Floral Printed Cotton Kurti
 "42170984300647": { name: "Ivory & Blush Pink Floral Printed Cotton Kurti", size: "XS", link: "https://yavastrah.com" },
 "42170984333415": { name: "Ivory & Blush Pink Floral Printed Cotton Kurti", size: "S", link: "https://yavastrah.com" },
 "42170984431719": { name: "Ivory & Blush Pink Floral Printed Cotton Kurti", size: "XL", link: "https://yavastrah.com" },
 "42170984366183": { name: "Ivory & Blush Pink Floral Printed Cotton Kurti", size: "M", link: "https://yavastrah.com" },
 "42170984398951": { name: "Ivory & Blush Pink Floral Printed Cotton Kurti", size: "L", link: "https://yavastrah.com" },
+    
 // 🛍️ Maroon & Black Geometric Print A-Line Flare Dress
 "42150797738087": { name: "Maroon & Black Geometric Print A-Line Flare Dress", size: "XL", link: "https://yavastrah.com" },
 "42150797607015": { name: "Maroon & Black Geometric Print A-Line Flare Dress", size: "XS", link: "https://yavastrah.com" },
 "42150797705319": { name: "Maroon & Black Geometric Print A-Line Flare Dress", size: "L", link: "https://yavastrah.com" },
 "42150797639783": { name: "Maroon & Black Geometric Print A-Line Flare Dress", size: "S", link: "https://yavastrah.com" },
 "42150797672551": { name: "Maroon & Black Geometric Print A-Line Flare Dress", size: "M", link: "https://yavastrah.com" },
+    
 // 🛍️ Teal Blue Ethnic Motif Print Crop Top
 "42150805864551": { name: "Teal Blue Ethnic Motif Print Crop Top", size: "S", link: "https://yavastrah.com" },
 "42150805962855": { name: "Teal Blue Ethnic Motif Print Crop Top", size: "XL", link: "https://yavastrah.com" },
 "42150805930087": { name: "Teal Blue Ethnic Motif Print Crop Top", size: "L", link: "https://yavastrah.com" },
 "42150805897319": { name: "Teal Blue Ethnic Motif Print Crop Top", size: "M", link: "https://yavastrah.com" },
 "42150805831783": { name: "Teal Blue Ethnic Motif Print Crop Top", size: "XS", link: "https://yavastrah.com" },
+    
 // 🛍️ Rani Pink Paisley Angrakha Kurti
 "42150797377639": { name: "Rani Pink Paisley Angrakha Kurti", size: "M", link: "https://yavastrah.com" },
 "42150797312103": { name: "Rani Pink Paisley Angrakha Kurti", size: "XS", link: "https://yavastrah.com" },
 "42150797410407": { name: "Rani Pink Paisley Angrakha Kurti", size: "L", link: "https://yavastrah.com" },
 "42150797344871": { name: "Rani Pink Paisley Angrakha Kurti", size: "S", link: "https://yavastrah.com" },
 "42150797443175": { name: "Rani Pink Paisley Angrakha Kurti", size: "XL", link: "https://yavastrah.com" },
+    
 // 🛍️ Mustard Green A-Line Flare Dress
 "42147434004583": { name: "Mustard Green A-Line Flare Dress", size: "M", link: "https://yavastrah.com" },
 "42147433971815": { name: "Mustard Green A-Line Flare Dress", size: "S", link: "https://yavastrah.com" },
 "42147434070119": { name: "Mustard Green A-Line Flare Dress", size: "XL", link: "https://yavastrah.com" },
 "42147433939047": { name: "Mustard Green A-Line Flare Dress", size: "XS", link: "https://yavastrah.com" },
 "42147434037351": { name: "Mustard Green A-Line Flare Dress", size: "L", link: "https://yavastrah.com" },
+    
 // 🛍️ Dark Green Printed Kurta Palazzo Set
 "42147412639847": { name: "Dark Green Printed Kurta Palazzo Set", size: "M", link: "https://yavastrah.com" },
 "42147412607079": { name: "Dark Green Printed Kurta Palazzo Set", size: "S", link: "https://yavastrah.com" },
 "42147412705383": { name: "Dark Green Printed Kurta Palazzo Set", size: "XL", link: "https://yavastrah.com" },
 "42147412574311": { name: "Dark Green Printed Kurta Palazzo Set", size: "XS", link: "https://yavastrah.com" },
 "42147412672615": { name: "Dark Green Printed Kurta Palazzo Set", size: "L", link: "https://yavastrah.com" },
+    
 // 🛍️ Navy Blue Printed Kurta Palazzo Set
 "42210910699623": { name: "Navy Blue Printed Kurta Palazzo Set", size: "XS", link: "https://yavastrah.com" },
 "42210910732391": { name: "Navy Blue Printed Kurta Palazzo Set", size: "S", link: "https://yavastrah.com" },
