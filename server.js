@@ -200,12 +200,12 @@ async function sendWhatsApp(to, message) {
 
 /* ✅ SECURE RAZORPAY PAYMENT LINK ENGINE */
 async function createPaymentLink(amount, phone, product) {
-    const link = await razorpay.paymentLink.create({
+    const paymentData = await razorpay.paymentLink.create({
         amount: Math.round(amount * 100), currency: "INR", description: `${product.name}`,
         customer: { contact: phone },
         notes: { Product: product.name, Size: product.size || "M", Price: `₹${product.price}`, Address: product.basic_info || "-" }
     });
-    return link.short_url;
+    return paymentData.short_url;
 }
 
 /* ✅ WEBHOOK CONTROLLER ENDPOINT */
@@ -278,26 +278,38 @@ const msg = `${productText}💰 *Total Amount: ₹${totalPrice}*
 
             /* ✅ CHECKOUT CONFIGURATION ROUTER USER CHOICE LOGIC */
             if (text.includes("1")) {
-                let productText = "";
 
-session.products.forEach(item => {
-    const retailerId = String(item.product_retailer_id || "").trim();
-    const localProduct = catalogDirectory[retailerId];
+    let productText = "";
+    
+    session.products.forEach(item => {
+        const retailerId = String(item.product_retailer_id || "").trim();
+        const localProduct = catalogDirectory[retailerId];
 
-    const name = localProduct?.name || `Product ${retailerId}`;
-    const size = localProduct?.size || "M";
+        const name = localProduct?.name || `Product ${retailerId}`;
+        const size = localProduct?.size || "M";
 
-    productText += `🛍️ ${name}\n📏 Size: ${size}\n\n`;
-});
+        productText += `🛍️ ${name}\n📏 Size: ${size}\n\n`;
+    });
 
-await sendWhatsApp(phone,
-`${productText}💰 Total: ₹${session.total}
+    // ✅ CART LINK GENERATION (THIS IS THE NEW PART)
+    let cartLink = "https://yavastrah.com/cart/";
+
+    const items = session.products.map(item => {
+        return `${item.product_retailer_id}:1`;
+    });
+
+    cartLink += items.join(",");
+
+    await sendWhatsApp(phone,
+`${productText}
+💰 Total: ₹${session.total}
 
 🛒 Buy here:
-https://yavastrah.com`
-);
-                delete userSession[phone];
-            } else if (text === "2") {
+${cartLink}`);
+
+    delete userSession[phone];
+}
+`` else if (text === "2") {
                 session.step = "address"; session.payment = "online";
                 await sendWhatsApp(phone, "📦 Enter name & city:\n\nFor Example : Rahul - Jaipur");
             } else if (text === "3" || text.includes("3")) {
@@ -306,7 +318,7 @@ https://yavastrah.com`
             } else if (session.step === "address") {
                 session.basic_info = text;
                 if (session.payment === "online") {
-                    const link = await createPaymentLink(session.total, phone, session);
+                    const paymentLink = await createPaymentLink(session.total, phone, session);
                     let productText = "";
 
 session.products.forEach(item => {
@@ -325,7 +337,7 @@ await sendWhatsApp(phone,
 `${productText}💰 Amount: ₹${session.total}
 
 💳 Pay here:
-${link}`
+${paymentLink}`
 );\n\n✅ Secure Checkout generated successfully, 📞 You will receive all communication shortly post payment confirmation.`);
                 } else {
                    let productText = "";
