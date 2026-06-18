@@ -278,7 +278,24 @@ const msg = `${productText}💰 *Total Amount: ₹${totalPrice}*
 
             /* ✅ CHECKOUT CONFIGURATION ROUTER USER CHOICE LOGIC */
             if (text.includes("1")) {
-                await sendWhatsApp(phone, `🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 Price: ₹${session.total}\n\n🛒 Buy here:\n${session.link}`);
+                let productText = "";
+
+session.products.forEach(item => {
+    const retailerId = String(item.product_retailer_id || "").trim();
+    const localProduct = catalogDirectory[retailerId];
+
+    const name = localProduct?.name || `Product ${retailerId}`;
+    const size = localProduct?.size || "M";
+
+    productText += `🛍️ ${name}\n📏 Size: ${size}\n\n`;
+});
+
+await sendWhatsApp(phone,
+`${productText}💰 Total: ₹${session.total}
+
+🛒 Buy here:
+https://yavastrah.com`
+);
                 delete userSession[phone];
             } else if (text === "2") {
                 session.step = "address"; session.payment = "online";
@@ -290,10 +307,49 @@ const msg = `${productText}💰 *Total Amount: ₹${totalPrice}*
                 session.basic_info = text;
                 if (session.payment === "online") {
                     const link = await createPaymentLink(session.total, phone, session);
-                    await sendWhatsApp(phone, `🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 Amount: ₹${session.total}\n\n💳 Pay here:\n${link}\n\n✅ Secure Checkout generated successfully, 📞 You will receive all communication shortly post payment confirmation.`);
+                    let productText = "";
+
+session.products.forEach(item => {
+    const retailerId = String(item.product_retailer_id || "").trim();
+    const localProduct = catalogDirectory[retailerId];
+
+    const name = localProduct?.name || `Product ${retailerId}`;
+    const size = localProduct?.size || "M";
+
+    productText += `🛍️ ${name}\n📏 Size: ${size}\n\n`;
+});
+
+const link = await createPaymentLink(session.total, phone, session);
+
+await sendWhatsApp(phone,
+`${productText}💰 Amount: ₹${session.total}
+
+💳 Pay here:
+${link}`
+);\n\n✅ Secure Checkout generated successfully, 📞 You will receive all communication shortly post payment confirmation.`);
                 } else {
-                    await sendWhatsApp(phone, `✅ Order Confirmed!\n\n🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 ₹${session.total}\n📍 ${session.basic_info}\n\n📞 You will receive confirmation via call shortly`);
-                    delete userSession[phone];
+                   let productText = "";
+
+session.products.forEach(item => {
+    const retailerId = String(item.product_retailer_id || "").trim();
+    const localProduct = catalogDirectory[retailerId];
+
+    const name = localProduct?.name || `Product ${retailerId}`;
+    const size = localProduct?.size || "M";
+
+    productText += `🛍️ ${name}\n📏 Size: ${size}\n\n`;
+});
+
+await sendWhatsApp(phone,
+`✅ Order Confirmed!
+
+${productText}💰 ₹${session.total}
+
+📍 ${session.basic_info}
+
+📞 You will receive confirmation shortly`
+);
+delete userSession[phone];
                 }
             }
         }
