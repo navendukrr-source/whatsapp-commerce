@@ -237,13 +237,12 @@ productItemsArray.forEach(item => {
             
             // Look up from local database directory maps
 
-         userSession[phone] = {
+        userSession[phone] = {
     products: productItemsArray,
     total: totalPrice
 };
 
-            const sText = finalSize ? `📏 Size: ${finalSize}\n` : "";
-            const msg = `${productText}💰 *Total Amount: ₹${totalPrice}*
+const msg = `${productText}💰 *Total Amount: ₹${totalPrice}*
 
 👉 How would you like to proceed?
 
