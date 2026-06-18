@@ -219,7 +219,21 @@ app.post("/webhook", async (req, res) => {
             if (!productItemsArray || productItemsArray.length === 0) return res.sendStatus(200);
 
             // FIX: Safely extract index zero to break out from array envelope container wrapper!
-            const item = productItemsArray[0]; 
+            let totalPrice = 0;
+let productText = "";
+
+productItemsArray.forEach(item => {
+    const retailerId = String(item.product_retailer_id || "").trim();
+    const localProduct = catalogDirectory[retailerId];
+
+    const name = localProduct?.name || `Product ${retailerId}`;
+    const size = localProduct?.size || "M";
+    const price = item.item_price;
+
+    totalPrice += price;
+
+    productText += `🛍️ ${name}\n📏 Size: ${size}\n💰 ₹${price}\n\n`;
+});
             const retailerId = String(item.product_retailer_id || "").trim();
             
             // Look up from local database directory maps
@@ -230,13 +244,23 @@ app.post("/webhook", async (req, res) => {
             const finalSize = localProduct ? localProduct.size : "M";
             const finalLink = `https://yavastrah.com`;
 
-            userSession[phone] = {
-                id: retailerId, price: item.item_price, name: finalName, size: finalSize, link: finalLink
+           userSession[phone] = {
+    products: productItemsArray,
+    total: totalPrice
+};
+                id: retailerId, total: totalPrice, name: finalName, size: finalSize, link: finalLink
             };
 
             const sText = finalSize ? `📏 Size: ${finalSize}\n` : "";
-            const msg = `🛍️ *${finalName}*\n\n${sText}💰 Price: ₹${item.item_price}\n\n👉 How would you like to proceed?\n\n1️⃣ View on Website (Fastest)\n2️⃣ Pay Now (Razorpay-Secure 🔒)\n3️⃣ Cash on Delivery (COD)\n\n💬 Reply with *1, 2 or 3*`;
-            
+            const msg = `${productText}💰 *Total Amount: ₹${totalPrice}*
+
+👉 How would you like to proceed?
+
+1️⃣ View on Website (Fastest)
+2️⃣ Pay Now (Razorpay-Secure 🔒)
+3️⃣ Cash on Delivery (COD)
+
+💬 Reply with *1, 2 or 3*`;
             await sendWhatsApp(phone, msg);
 
         } else {
@@ -257,7 +281,7 @@ app.post("/webhook", async (req, res) => {
 
             /* ✅ CHECKOUT CONFIGURATION ROUTER USER CHOICE LOGIC */
             if (text.includes("1")) {
-                await sendWhatsApp(phone, `🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 Price: ₹${session.price}\n\n🛒 Buy here:\n${session.link}`);
+                await sendWhatsApp(phone, `🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 Price: ₹${session.total}\n\n🛒 Buy here:\n${session.link}`);
                 delete userSession[phone];
             } else if (text === "2") {
                 session.step = "address"; session.payment = "online";
@@ -268,10 +292,10 @@ app.post("/webhook", async (req, res) => {
             } else if (session.step === "address") {
                 session.basic_info = text;
                 if (session.payment === "online") {
-                    const link = await createPaymentLink(session.price, phone, session);
-                    await sendWhatsApp(phone, `🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 Amount: ₹${session.price}\n\n💳 Pay here:\n${link}\n\n✅ Secure Checkout generated successfully, 📞 You will receive all communication shortly post payment confirmation.`);
+                    const link = await createPaymentLink(session.total, phone, session);
+                    await sendWhatsApp(phone, `🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 Amount: ₹${session.total}\n\n💳 Pay here:\n${link}\n\n✅ Secure Checkout generated successfully, 📞 You will receive all communication shortly post payment confirmation.`);
                 } else {
-                    await sendWhatsApp(phone, `✅ Order Confirmed!\n\n🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 ₹${session.price}\n📍 ${session.basic_info}\n\n📞 You will receive confirmation via call shortly`);
+                    await sendWhatsApp(phone, `✅ Order Confirmed!\n\n🛍️ ${session.name}\n📏 Size: ${session.size}\n💰 ₹${session.total}\n📍 ${session.basic_info}\n\n📞 You will receive confirmation via call shortly`);
                     delete userSession[phone];
                 }
             }
