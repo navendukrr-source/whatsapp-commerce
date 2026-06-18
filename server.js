@@ -123,7 +123,7 @@ const catalogDirectory = {
     "42147507339367": { name: "Red Printed Kurta Palazzo Set", size: "L", link: "https://yavastrah.com" },
     "42147507241063": { name: "Red Printed Kurta Palazzo Set", size: "XS", link: "https://yavastrah.com" },
 
-    // 🛍️ Off-White Floral Print Cotton Shirt (Your 3 Sizes M, L, XL)
+    // 🛍️ Off-White Floral Print Cotton Shirt
 "42147386949735": { name: "Off-White Floral Print Cotton Shirt", size: "M", link: "yavastrah.com" },
 "42147386982503": { name: "Off-White Floral Print Cotton Shirt", size: "L", link: "yavastrah.com" },
 "42147387015271": { name: "Off-White Floral Print Cotton Shirt", size: "XL", link: "yavastrah.com" },
