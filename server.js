@@ -201,30 +201,38 @@ async function sendWhatsApp(to, message) {
 /* ✅ SECURE RAZORPAY PAYMENT LINK ENGINE */
 async function createPaymentLink(amount, phone, product) {
 
-    // ✅ Create product summary
+    console.log("PRODUCT DATA:", product);
+
     let productSummary = "";
 
-    if (product.products.length === 1) {
-        const item = product.products[0];
-        const retailerId = String(item.product_retailer_id || "").trim();
-        const localProduct = catalogDirectory[retailerId];
+    if (product.products && product.products.length > 0) {
 
-        productSummary = localProduct?.name || "Product Purchase";
+        if (product.products.length === 1) {
+            const item = product.products[0];
+            const retailerId = String(item.product_retailer_id || "").trim();
+
+            const localProduct = catalogDirectory[retailerId];
+            productSummary = localProduct?.name || "Product Purchase";
+
+        } else {
+            productSummary = `${product.products.length} Items Purchase`;
+        }
+
     } else {
-        productSummary = `${product.products.length} Items Purchase`;
+        productSummary = "Product Purchase";
     }
 
     const paymentData = await razorpay.paymentLink.create({
         amount: Math.round(amount * 100),
         currency: "INR",
+
         description: productSummary,   // ✅ FIXED
 
         customer: { contact: phone },
 
         notes: {
-            Products: productSummary,   // ✅ FIXED
-            Total: `₹${product.total}`, 
-            Address: product.basic_info || "-"
+            Products: productSummary,
+            Total: `₹${product.total || amount}`
         }
     });
 
