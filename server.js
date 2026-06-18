@@ -234,7 +234,6 @@ productItemsArray.forEach(item => {
 
     productText += `🛍️ ${name}\n📏 Size: ${size}\n💰 ₹${price}\n\n`;
 });
-            const retailerId = String(item.product_retailer_id || "").trim();
             
             // Look up from local database directory maps
             const localProduct = catalogDirectory[retailerId];
