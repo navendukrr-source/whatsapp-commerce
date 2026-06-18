@@ -337,9 +337,10 @@ await sendWhatsApp(phone,
 `${productText}💰 Amount: ₹${session.total}
 
 💳 Pay here:
-${paymentLink}`
-);\n\n✅ Secure Checkout generated successfully, 📞 You will receive all communication shortly post payment confirmation.`);
-                } else {
+${paymentLink}
+
+✅ Secure Checkout generated successfully, 📞 You will receive all communication shortly post payment confirmation.`
+); else {
                    let productText = "";
 
 session.products.forEach(item => {
