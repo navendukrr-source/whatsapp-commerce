@@ -309,7 +309,7 @@ ${cartLink}`);
 
     delete userSession[phone];
 }
-`` else if (text === "2") {
+else if (text === "2") {
                 session.step = "address"; session.payment = "online";
                 await sendWhatsApp(phone, "📦 Enter name & city:\n\nFor Example : Rahul - Jaipur");
             } else if (text === "3" || text.includes("3")) {
