@@ -236,12 +236,6 @@ productItemsArray.forEach(item => {
 });
             
             // Look up from local database directory maps
-            const localProduct = catalogDirectory[retailerId];
-
-            const fallbackBrandedName = `Yavastrah Premium Apparel (ID: ${retailerId.slice(-4)})`;
-            const finalName = localProduct ? localProduct.name : fallbackBrandedName;
-            const finalSize = localProduct ? localProduct.size : "M";
-            const finalLink = `https://yavastrah.com`;
 
          userSession[phone] = {
     products: productItemsArray,
