@@ -340,7 +340,8 @@ await sendWhatsApp(phone,
 ${paymentLink}
 
 ✅ Secure Checkout generated successfully, 📞 You will receive all communication shortly post payment confirmation.`
-); else {
+);
+} else {
                    let productText = "";
 
 session.products.forEach(item => {
