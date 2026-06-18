@@ -314,7 +314,7 @@ else if (text === "2") {
                 await sendWhatsApp(phone, "📦 Enter name & city:\n\nFor Example : Rahul - Jaipur");
             } else if (text === "3" || text.includes("3")) {
                 session.step = "address"; session.payment = "cod";
-                await sendWhatsApp(phone, "📦 Enter name & city:\n\nRahul - Jaipur");
+                await sendWhatsApp(phone, "📦 Enter name & city:\n\nFor Example : Rahul - Jaipur");
             } else if (session.step === "address") {
                 session.basic_info = text;
                 if (session.payment === "online") {
