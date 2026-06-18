@@ -244,12 +244,10 @@ productItemsArray.forEach(item => {
             const finalSize = localProduct ? localProduct.size : "M";
             const finalLink = `https://yavastrah.com`;
 
-           userSession[phone] = {
+         userSession[phone] = {
     products: productItemsArray,
     total: totalPrice
 };
-                id: retailerId, total: totalPrice, name: finalName, size: finalSize, link: finalLink
-            };
 
             const sText = finalSize ? `📏 Size: ${finalSize}\n` : "";
             const msg = `${productText}💰 *Total Amount: ₹${totalPrice}*
